@@ -4,8 +4,8 @@ import {
   associateCodeBlocksWithRefs,
   extractCodeBlockAfterComment,
   normalizeCode,
-} from '../src/utils/markdown';
-import type { CodeRef } from '../src/utils/types';
+} from './markdown';
+import type { CodeRef } from './types';
 
 describe('markdown.utils', () => {
   describe('extractCodeBlockAfterComment', () => {

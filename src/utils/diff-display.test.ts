@@ -1,4 +1,4 @@
-import { displayCodeDiff, displayLineRangeDiff, truncateText } from '../src/utils/diff-display';
+import { displayCodeDiff, displayLineRangeDiff, truncateText } from './diff-display';
 
 describe('displayCodeDiff', () => {
   it('一致するコードの場合、差分を表示しない', () => {

@@ -3,9 +3,9 @@ import * as path from 'path';
 
 import { jest } from '@jest/globals';
 
-import type { CodeRef } from '../src/utils/types';
-import { extractCodeRefs, findMarkdownFiles, validateCodeRef } from '../src/core/validate';
-import type { CodeRefConfig } from '../src/config';
+import type { CodeRef } from '../utils/types';
+import { extractCodeRefs, findMarkdownFiles, validateCodeRef } from './validate';
+import type { CodeRefConfig } from '../config';
 
 // テスト用のモックプロジェクトルート
 const mockProjectRoot = '/project';

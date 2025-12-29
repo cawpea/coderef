@@ -5,7 +5,7 @@
 import * as fs from 'fs';
 import * as readline from 'readline';
 
-import { extractLinesFromFile, searchCodeInFileWithScopeExpansion } from '../src/utils/code-comparison';
+import { extractLinesFromFile, searchCodeInFileWithScopeExpansion } from './code-comparison';
 import {
   applyFix,
   createBlockMissingFix,
@@ -17,21 +17,21 @@ import {
   createSymbolRangeMismatchFix,
   handleMultipleMatches,
   isFixableError,
-} from '../src/utils/fix';
-import * as markdownEdit from '../src/utils/markdown-edit';
-import * as prompt from '../src/utils/prompt';
-import { CodeRefError, FixAction } from '../src/utils/types';
+} from './fix';
+import * as markdownEdit from './markdown-edit';
+import * as prompt from './prompt';
+import { CodeRefError, FixAction } from './types';
 
 // モック設定
 jest.mock('fs');
-jest.mock('../src/utils/code-comparison', () => ({
+jest.mock('./code-comparison', () => ({
   searchCodeInFile: jest.fn(),
   searchCodeInFileWithScopeExpansion: jest.fn(),
   extractLinesFromFile: jest.fn(),
 }));
-jest.mock('../src/utils/markdown-edit');
-jest.mock('../src/utils/prompt');
-jest.mock('../src/utils/ast-scope-expansion');
+jest.mock('./markdown-edit');
+jest.mock('./prompt');
+jest.mock('./ast-scope-expansion');
 
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockExtractLinesFromFile = extractLinesFromFile as jest.MockedFunction<
@@ -215,7 +215,7 @@ describe('createContentMismatchFix', () => {
     mockFs.readFileSync.mockReturnValue('file content' as any);
 
     // ast-scope-expansionモックで空配列を返す（拡張なし）
-    const astScopeExpansion = require('../src/utils/ast-scope-expansion'); // eslint-disable-line
+    const astScopeExpansion = require('./ast-scope-expansion'); // eslint-disable-line
     astScopeExpansion.expandMatchToScope = jest.fn().mockReturnValue([]);
 
     const result = createContentMismatchFix(error) as FixAction;
@@ -243,7 +243,7 @@ describe('createContentMismatchFix', () => {
     mockFs.readFileSync.mockReturnValue('file content' as any);
 
     // ast-scope-expansionモックで拡張されたマッチを返す
-    const astScopeExpansion = require('../src/utils/ast-scope-expansion'); // eslint-disable-line
+    const astScopeExpansion = require('./ast-scope-expansion'); // eslint-disable-line
     astScopeExpansion.expandMatchToScope = jest.fn().mockReturnValue([
       {
         start: 8,

@@ -34,7 +34,7 @@ npm run type-check         # Run TypeScript compiler checks
 
 ### Single Test Execution
 ```bash
-npx jest <test-file-path>            # Run specific test file
+npx jest src/utils/foo.test.ts       # Run specific test file
 npx jest -t "<test-name-pattern>"    # Run tests matching pattern
 ```
 
@@ -91,7 +91,7 @@ The tool supports three reference patterns:
 Uses `@typescript-eslint/typescript-estree` for TypeScript/JavaScript symbol searching and code extraction.
 
 ### Test Configuration
-- Test files: `test/**/*.test.ts`
+- Test files: Co-located with source files as `**/*.test.ts`
 - Path alias: `@/` maps to `src/`
 - Environment: Node.js
 - Preset: ts-jest
