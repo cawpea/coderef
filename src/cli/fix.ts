@@ -74,7 +74,7 @@ function collectErrors(config: CodeRefFixConfig): ErrorGroup[] {
 /**
  * メイン処理
  */
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const options = parseArgs();
 
   // 設定を読み込み
