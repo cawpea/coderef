@@ -5,9 +5,18 @@ import { jest } from '@jest/globals';
 
 import type { CodeRef } from '../src/utils/types';
 import { extractCodeRefs, findMarkdownFiles, validateCodeRef } from '../src/core/validate';
+import type { CodeRefConfig } from '../src/config';
 
 // テスト用のモックプロジェクトルート
 const mockProjectRoot = '/project';
+
+// テスト用の設定オブジェクト
+const mockConfig: CodeRefConfig = {
+  projectRoot: mockProjectRoot,
+  docsDir: 'docs',
+  ignoreFile: '.docsignore',
+  verbose: false,
+};
 
 // モックの設定
 jest.mock('fs');
@@ -170,7 +179,7 @@ describe('validate-docs-code', () => {
 
       mockedFs.existsSync.mockReturnValue(true);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toEqual([]);
     });
@@ -186,7 +195,7 @@ describe('validate-docs-code', () => {
 
       mockedFs.existsSync.mockReturnValue(false);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('FILE_NOT_FOUND');
@@ -205,7 +214,7 @@ describe('validate-docs-code', () => {
       // 一時的にモックを上書きして、プロジェクトルート外のパスを返す
       mockedPath.resolve.mockImplementationOnce(() => '/etc/passwd');
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('PATH_TRAVERSAL');
@@ -223,7 +232,7 @@ describe('validate-docs-code', () => {
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync.mockReturnValue('line1\nline2\nline3\nline4\nline5\n');
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('INVALID_LINE_NUMBER');
@@ -241,7 +250,7 @@ describe('validate-docs-code', () => {
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync.mockReturnValue('line1\nline2\nline3\n'); // 3行のみ
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('LINE_OUT_OF_RANGE');
@@ -261,7 +270,7 @@ describe('validate-docs-code', () => {
         'line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11\n'
       );
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('INVALID_RANGE');
@@ -281,7 +290,7 @@ describe('validate-docs-code', () => {
         throw new Error('Permission denied');
       });
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('READ_ERROR');
@@ -301,7 +310,7 @@ describe('validate-docs-code', () => {
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync.mockReturnValue('line1\nline2\nline3\nline4\nline5\n');
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       // 既存の検証（ファイル存在、行範囲）は通過するが、
       // コードブロックがないため CODE_BLOCK_MISSING が発生する
@@ -324,7 +333,7 @@ describe('validate-docs-code', () => {
       // 一時的にモックを上書きして、プロジェクトルート外のパスを返す
       mockedPath.resolve.mockImplementationOnce(() => '/etc/passwd');
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('PATH_TRAVERSAL');
@@ -446,7 +455,7 @@ line8`;
 
       mockedFs.readFileSync.mockReturnValue(fileContent);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_LOCATION_MISMATCH');
@@ -473,7 +482,7 @@ line4`;
 
       mockedFs.readFileSync.mockReturnValue(fileContent);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_CONTENT_MISMATCH');
@@ -493,7 +502,7 @@ line4`;
 
       mockedFs.readFileSync.mockReturnValue('line1\nline2\nline3');
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_BLOCK_MISSING');
@@ -526,7 +535,7 @@ line12`;
 
       mockedFs.readFileSync.mockReturnValue(fileContent);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       // LINE_OUT_OF_RANGEとCODE_LOCATION_MISMATCHの両方が発生する可能性がある
       // ここでは CODE_LOCATION_MISMATCH をチェック
@@ -547,7 +556,7 @@ line12`;
         codeBlock: 'some code',
       };
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toEqual([]);
     });
@@ -570,7 +579,7 @@ line5`;
 
       mockedFs.readFileSync.mockReturnValue(fileContent);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toEqual([]);
     });
@@ -592,7 +601,7 @@ line4`;
 
       mockedFs.readFileSync.mockReturnValue(fileContent);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toEqual([]);
     });
@@ -613,7 +622,7 @@ line4`;
       mockedFs.existsSync.mockReturnValue(true);
       mockedFs.readFileSync.mockReturnValue('function myFunction() { return 42; }');
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_BLOCK_MISSING');
@@ -635,7 +644,7 @@ line4`;
 
       mockedFs.existsSync.mockReturnValue(true);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_BLOCK_MISSING');
@@ -653,7 +662,7 @@ line4`;
 
       mockedFs.existsSync.mockReturnValue(true);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toEqual([]);
     });
@@ -673,7 +682,7 @@ line4`;
       mockedFs.existsSync.mockReturnValue(true);
       // コードブロックがある場合は、シンボル全体との比較が行われる
       // この検証は既存のロジックで実装されている
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       // エラーがないか、またはシンボルが見つからないなどの別のエラー
       // 既存のロジックに依存するため、ここでは詳細な検証は行わない
@@ -794,7 +803,7 @@ line4`;
 
       mockedFs.existsSync.mockReturnValue(true);
 
-      const result = validateCodeRef(ref);
+      const result = validateCodeRef(ref, mockConfig);
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('NOT_TYPESCRIPT_FILE');

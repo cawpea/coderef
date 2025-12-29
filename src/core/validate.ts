@@ -29,11 +29,9 @@ import { displayCodeDiff, displayLineRangeDiff } from '../utils/diff-display';
 import { isIgnored, loadDocsignorePatterns } from '../utils/ignore-pattern';
 import { associateCodeBlocksWithRefs } from '../utils/markdown';
 import type { CodeRef, CodeRefError } from '../utils/types';
+import { loadConfig, getDocsPath, getIgnoreFilePath, type CodeRefConfig } from '../config';
 
-// 設定
-const DOCS_DIR = path.join(__dirname, '../..', 'docs');
-const PROJECT_ROOT = path.join(__dirname, '../..');
-const DOCSIGNORE_FILE = path.join(PROJECT_ROOT, '.docsignore');
+// CODE_REF パターン定数
 const CODE_REF_PATTERN = /<!--\s*CODE_REF:\s*([^:#]+?)(?:#([^:]+?))?(?::(\d+)-(\d+))?\s*-->/g;
 
 // コマンドライン引数のパース
@@ -167,7 +165,9 @@ export function extractCodeRefs(content: string, filePath: string): CodeRef[] {
 /**
  * コード内容の検証
  */
-export function validateCodeContent(ref: CodeRef): CodeRefError[] {
+export function validateCodeContent(ref: CodeRef, config?: CodeRefConfig): CodeRefError[] {
+  const cfg = config || loadConfig();
+  const projectRoot = cfg.projectRoot;
   const errors: CodeRefError[] = [];
 
   // 行数指定がない場合の処理
@@ -185,7 +185,7 @@ export function validateCodeContent(ref: CodeRef): CodeRefError[] {
       }
 
       // シンボルの範囲を取得
-      const absolutePath = path.resolve(PROJECT_ROOT, ref.refPath);
+      const absolutePath = path.resolve(projectRoot, ref.refPath);
       const fileContent = fs.readFileSync(absolutePath, 'utf-8');
       const matches = findSymbolInAST(fileContent, absolutePath, {
         className: ref.className,
@@ -231,7 +231,7 @@ export function validateCodeContent(ref: CodeRef): CodeRefError[] {
     return errors;
   }
 
-  const absolutePath = path.resolve(PROJECT_ROOT, ref.refPath);
+  const absolutePath = path.resolve(projectRoot, ref.refPath);
 
   try {
     // 実ファイルから指定行のコードを取得
@@ -280,7 +280,9 @@ export function validateCodeContent(ref: CodeRef): CodeRefError[] {
 /**
  * シンボル指定の検証
  */
-export function validateSymbolRef(ref: CodeRef): CodeRefError[] {
+export function validateSymbolRef(ref: CodeRef, config?: CodeRefConfig): CodeRefError[] {
+  const cfg = config || loadConfig();
+  const projectRoot = cfg.projectRoot;
   const errors: CodeRefError[] = [];
 
   // シンボル指定がない場合はスキップ
@@ -288,7 +290,7 @@ export function validateSymbolRef(ref: CodeRef): CodeRefError[] {
     return errors;
   }
 
-  const absolutePath = path.resolve(PROJECT_ROOT, ref.refPath);
+  const absolutePath = path.resolve(projectRoot, ref.refPath);
 
   // TypeScript/JavaScriptファイルチェック
   if (!isTypeScriptOrJavaScript(absolutePath)) {
@@ -359,14 +361,16 @@ export function validateSymbolRef(ref: CodeRef): CodeRefError[] {
 /**
  * 参照先のファイルと行番号の存在を確認
  */
-export function validateCodeRef(ref: CodeRef): CodeRefError[] {
+export function validateCodeRef(ref: CodeRef, config?: CodeRefConfig): CodeRefError[] {
+  const cfg = config || loadConfig();
+  const projectRoot = cfg.projectRoot;
   const errors: CodeRefError[] = [];
 
   // 相対パスを絶対パスに変換(プロジェクトルートからの相対パス)
-  const absolutePath = path.resolve(PROJECT_ROOT, ref.refPath);
+  const absolutePath = path.resolve(projectRoot, ref.refPath);
 
   // パストラバーサル攻撃を防ぐ: プロジェクトルート内に留まるか検証
-  if (!absolutePath.startsWith(PROJECT_ROOT + path.sep)) {
+  if (!absolutePath.startsWith(projectRoot + path.sep)) {
     errors.push({
       type: 'PATH_TRAVERSAL',
       message: `参照先のパスがプロジェクトルート外を指しています: ${ref.refPath}`,
@@ -427,13 +431,13 @@ export function validateCodeRef(ref: CodeRef): CodeRefError[] {
 
   // シンボル指定がある場合はシンボルバリデーション
   if (errors.length === 0 && ref.symbolPath) {
-    const symbolErrors = validateSymbolRef(ref);
+    const symbolErrors = validateSymbolRef(ref, cfg);
     errors.push(...symbolErrors);
   }
 
   // コード内容の検証（既存のエラーがない場合のみ）
   if (errors.length === 0) {
-    const contentErrors = validateCodeContent(ref);
+    const contentErrors = validateCodeContent(ref, cfg);
     errors.push(...contentErrors);
   }
 
@@ -456,17 +460,20 @@ function isDirectory(filePath: string): boolean {
  * - ファイル指定がない場合: 全ファイル
  * - ファイル指定がある場合: 指定されたファイル/ディレクトリのみ
  */
-function resolveTargetFiles(targets: string[]): string[] {
+function resolveTargetFiles(targets: string[], config: CodeRefConfig): string[] {
+  const docsPath = getDocsPath(config);
+  const projectRoot = config.projectRoot;
+
   if (targets.length === 0) {
     // ファイル指定がない場合は全ファイルを対象
-    return findMarkdownFiles(DOCS_DIR);
+    return findMarkdownFiles(docsPath);
   }
 
   const resolvedFiles = new Set<string>();
 
   for (const target of targets) {
     // 相対パスを絶対パスに変換
-    const absolutePath = path.isAbsolute(target) ? target : path.join(PROJECT_ROOT, target);
+    const absolutePath = path.isAbsolute(target) ? target : path.join(projectRoot, target);
 
     if (isDirectory(absolutePath)) {
       // ディレクトリの場合は再帰的にマークダウンファイルを検索
@@ -488,22 +495,29 @@ function resolveTargetFiles(targets: string[]): string[] {
 export async function main(): Promise<void> {
   console.log('🔍 ドキュメント内のコード参照を検証しています...\n');
 
+  // 設定を読み込み
+  const config = loadConfig({
+    targets: targetFiles.length > 0 ? targetFiles : undefined,
+    verbose,
+  });
+
   // 対象ファイルを解決
-  const allMarkdownFiles = resolveTargetFiles(targetFiles);
+  const allMarkdownFiles = resolveTargetFiles(targetFiles, config);
 
   if (targetFiles.length > 0 && verbose) {
     console.log(`📋 指定されたファイル/ディレクトリ: ${targetFiles.join(', ')}\n`);
   }
 
   // .docsignoreパターンを読み込み
-  const ignorePatterns = loadDocsignorePatterns(DOCSIGNORE_FILE);
+  const ignoreFilePath = getIgnoreFilePath(config);
+  const ignorePatterns = ignoreFilePath ? loadDocsignorePatterns(ignoreFilePath) : [];
   if (verbose) {
     console.log(`📋 .docsignoreから${ignorePatterns.length}個のパターンを読み込みました\n`);
   }
 
   // .docsignoreで除外されていないファイルのみを対象とする
   const markdownFiles = allMarkdownFiles.filter((file) => {
-    const relativePath = path.relative(PROJECT_ROOT, file);
+    const relativePath = path.relative(config.projectRoot, file);
     return !isIgnored(relativePath, ignorePatterns);
   });
 
@@ -528,7 +542,7 @@ export async function main(): Promise<void> {
       allRefs.push(...refs);
 
       if (verbose) {
-        console.log(`  ${path.relative(DOCS_DIR, file)}: ${refs.length} 個の参照`);
+        console.log(`  ${path.relative(getDocsPath(config), file)}: ${refs.length} 個の参照`);
       }
     }
   }
@@ -541,7 +555,7 @@ export async function main(): Promise<void> {
   }
 
   // 各参照を検証
-  const allErrors = await Promise.all(allRefs.map((ref) => validateCodeRef(ref))).then((results) =>
+  const allErrors = await Promise.all(allRefs.map((ref) => validateCodeRef(ref, config))).then((results) =>
     results.flat()
   );
 
@@ -556,7 +570,7 @@ export async function main(): Promise<void> {
     const errorsByDoc: Record<string, CodeRefError[]> = {};
 
     for (const error of allErrors) {
-      const docFile = path.relative(PROJECT_ROOT, error.ref.docFile);
+      const docFile = path.relative(config.projectRoot, error.ref.docFile);
 
       if (!errorsByDoc[docFile]) {
         errorsByDoc[docFile] = [];
@@ -573,14 +587,14 @@ export async function main(): Promise<void> {
         console.log(`  ❌ ${error.type}: ${error.message}`);
 
         // ドキュメント内の行番号を表示
-        const filePath = path.relative(PROJECT_ROOT, error.ref.docFile);
+        const filePath = path.relative(config.projectRoot, error.ref.docFile);
         const lineInfo = error.ref.docLineNumber ? `:${error.ref.docLineNumber}` : '';
         console.log(`     ${filePath}${lineInfo}: ${error.ref.fullMatch}`);
 
         // CODE_LOCATION_MISMATCHの場合、行範囲の差分を表示
         if (error.type === 'CODE_LOCATION_MISMATCH' && error.suggestedLines && verbose) {
           // verboseモードでは詳細な差分を表示
-          const filePath = path.join(PROJECT_ROOT, error.ref.refPath);
+          const filePath = path.join(config.projectRoot, error.ref.refPath);
           const actualCode = extractLinesFromFile(
             filePath,
             error.suggestedLines.start,
