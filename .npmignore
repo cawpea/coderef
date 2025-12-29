@@ -1,0 +1,30 @@
+# Source files
+src/
+test/
+*.test.ts
+
+# Configuration files
+tsconfig.json
+jest.config.js
+.eslintrc.js
+.prettierrc
+
+# Development files
+.git/
+.github/
+.vscode/
+node_modules/
+
+# Build artifacts
+*.tsbuildinfo
+coverage/
+.nyc_output/
+
+# Documentation (except README)
+docs/
+
+# Misc
+*.log
+.DS_Store
+.env
+.env.local
