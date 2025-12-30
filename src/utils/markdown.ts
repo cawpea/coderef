@@ -65,10 +65,7 @@ export function extractCodeBlockAfterComment(content: string, commentIndex: numb
 export function associateCodeBlocksWithRefs(content: string, refs: CodeRef[]): CodeRef[] {
   return refs.map((ref) => {
     // codeBlockStartOffsetが設定されている場合はそれを使用、なければfullMatchから検索
-    const commentIndex =
-      ref.codeBlockStartOffset !== undefined
-        ? ref.codeBlockStartOffset
-        : content.indexOf(ref.fullMatch);
+    const commentIndex = ref.codeBlockStartOffset ?? content.indexOf(ref.fullMatch);
 
     if (commentIndex === -1) {
       // fullMatchが見つからない場合（通常は発生しないはず）
