@@ -106,7 +106,7 @@ describe('createLocationMismatchFix', () => {
     expect(result).toEqual({
       type: 'UPDATE_LINE_NUMBERS',
       error,
-      description: '行番号を 10-20 から 15-25 に更新',
+      description: 'Update line numbers from 10-20 to 15-25',
       preview: expect.stringContaining('test.ts:10-20'),
       newStartLine: 15,
       newEndLine: 25,
@@ -129,7 +129,7 @@ describe('createLocationMismatchFix', () => {
     };
 
     expect(() => createLocationMismatchFix(error)).toThrow(
-      'CODE_LOCATION_MISMATCHにはsuggestedLinesが必要です'
+      'CODE_LOCATION_MISMATCH requires suggestedLines'
     );
   });
 });
@@ -164,7 +164,7 @@ describe('createBlockMissingFix', () => {
     expect(result).toEqual({
       type: 'INSERT_CODE_BLOCK',
       error,
-      description: 'test.ts:10-20 からコードブロックを挿入',
+      description: 'Insert code block from test.ts:10-20',
       preview: expect.stringContaining('code content'),
       newCodeBlock: 'code content',
     });
@@ -185,7 +185,7 @@ describe('createBlockMissingFix', () => {
     };
 
     expect(() => createBlockMissingFix(error)).toThrow(
-      'ファイル全体参照にはコードブロックは不要です'
+      'Whole file reference does not need code block'
     );
   });
 });
@@ -283,7 +283,7 @@ describe('createLineOutOfRangeFix', () => {
     expect(result).toEqual({
       type: 'UPDATE_END_LINE',
       error,
-      description: '終了行を 150 から 100 (ファイル末尾) に修正',
+      description: 'Fix end line from 150 to 100 (end of file)',
       preview: expect.stringContaining('10-100'),
       newStartLine: 10,
       newEndLine: 100,
@@ -298,7 +298,7 @@ describe('createLineOutOfRangeFix', () => {
     };
 
     expect(() => createLineOutOfRangeFix(error)).toThrow(
-      'LINE_OUT_OF_RANGEエラーメッセージから行数を取得できません'
+      'Cannot get line count from LINE_OUT_OF_RANGE error message'
     );
   });
 });
@@ -332,7 +332,7 @@ describe('createSymbolRangeMismatchFix', () => {
     expect(result).toEqual({
       type: 'UPDATE_SYMBOL_RANGE',
       error,
-      description: 'シンボル "ClassName#methodName" の行番号を 10-20 から 15-25 に更新',
+      description: 'Update line numbers for symbol "ClassName#methodName" from 10-20 to 15-25',
       preview: expect.stringContaining('15-25'),
       newStartLine: 15,
       newEndLine: 25,
@@ -347,7 +347,7 @@ describe('createSymbolRangeMismatchFix', () => {
     };
 
     expect(() => createSymbolRangeMismatchFix(error)).toThrow(
-      'SYMBOL_RANGE_MISMATCHにはsuggestedSymbolが必要です'
+      'SYMBOL_RANGE_MISMATCH requires suggestedSymbol'
     );
   });
 });
@@ -396,7 +396,7 @@ describe('createMultipleSymbolsFoundFix', () => {
     expect(result).toEqual({
       type: 'UPDATE_SYMBOL_RANGE',
       error,
-      description: 'シンボル "methodName" の行番号を追加: 50-60',
+      description: 'Add line numbers for symbol "methodName": 50-60',
       preview: expect.stringContaining('50-60'),
       newStartLine: 50,
       newEndLine: 60,
@@ -413,7 +413,7 @@ describe('createMultipleSymbolsFoundFix', () => {
     const mockRl = {} as readline.Interface;
 
     await expect(createMultipleSymbolsFoundFix(error, mockRl)).rejects.toThrow(
-      'MULTIPLE_SYMBOLS_FOUNDにはfoundSymbolsが必要です'
+      'MULTIPLE_SYMBOLS_FOUND requires foundSymbols'
     );
   });
 });
@@ -474,7 +474,7 @@ describe('createFixAction', () => {
     };
 
     await expect(createFixAction(error)).rejects.toThrow(
-      'MULTIPLE_SYMBOLS_FOUNDにはreadline.Interfaceが必要です'
+      'MULTIPLE_SYMBOLS_FOUND requires readline.Interface'
     );
   });
 });

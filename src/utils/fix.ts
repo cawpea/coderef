@@ -1,5 +1,5 @@
 /**
- * 修正ロジックユーティリティ
+ * Fix logic utilities
  */
 
 import * as fs from 'fs';
@@ -20,7 +20,7 @@ import { askSelectOption } from '@/utils/prompt';
 import type { CodeRefError, ExpandedMatch, FixAction } from '@/utils/types';
 
 /**
- * エラーが修正可能かチェック
+ * Check if error is fixable
  */
 export function isFixableError(error: CodeRefError): boolean {
   return [
@@ -34,18 +34,18 @@ export function isFixableError(error: CodeRefError): boolean {
 }
 
 /**
- * CODE_LOCATION_MISMATCHの修正アクションを作成
+ * Create fix action for CODE_LOCATION_MISMATCH
  */
 export function createLocationMismatchFix(error: CodeRefError): FixAction {
   if (!error.suggestedLines) {
-    throw new Error('CODE_LOCATION_MISMATCHにはsuggestedLinesが必要です');
+    throw new Error('CODE_LOCATION_MISMATCH requires suggestedLines');
   }
 
   const { ref } = error;
   const oldComment = ref.fullMatch;
   const newComment = `<!-- CODE_REF: ${ref.refPath}:${error.suggestedLines.start}-${error.suggestedLines.end} -->`;
 
-  // 実際のコードを取得してプレビュー
+  // Get actual code for preview
   const projectRoot = path.resolve(__dirname, '../../..');
   const absolutePath = path.resolve(projectRoot, ref.refPath);
   const actualCode = extractLinesFromFile(
@@ -57,7 +57,7 @@ export function createLocationMismatchFix(error: CodeRefError): FixAction {
   return {
     type: 'UPDATE_LINE_NUMBERS',
     error,
-    description: `行番号を ${ref.startLine}-${ref.endLine} から ${error.suggestedLines.start}-${error.suggestedLines.end} に更新`,
+    description: `Update line numbers from ${ref.startLine}-${ref.endLine} to ${error.suggestedLines.start}-${error.suggestedLines.end}`,
     preview: `${oldComment}\n→ ${newComment}`,
     newStartLine: error.suggestedLines.start,
     newEndLine: error.suggestedLines.end,
@@ -66,11 +66,11 @@ export function createLocationMismatchFix(error: CodeRefError): FixAction {
 }
 
 /**
- * CODE_REFコメント近くのコードブロックを検索
+ * Search for code block near CODE_REF comment
  *
- * @param content ドキュメントの内容
- * @param commentMatch CODE_REFコメントのテキスト
- * @returns コードブロックの情報、見つからない場合はnull
+ * @param content Document content
+ * @param commentMatch CODE_REF comment text
+ * @returns Code block information, or null if not found
  */
 function findCodeBlockNearComment(
   content: string,
@@ -85,11 +85,11 @@ function findCodeBlockNearComment(
   const searchStart = commentEnd + 3;
   const searchWindow = content.substring(searchStart, searchStart + 5000);
 
-  // 次のCODE_REFコメントを検索
+  // Search for next CODE_REF comment
   const nextCommentMatch = /<!--\s*CODE_REF:/.exec(searchWindow);
   const searchLimit = nextCommentMatch ? nextCommentMatch.index : searchWindow.length;
 
-  // コードブロックを検索（次のCODE_REFコメントまで）
+  // Search for code block (up to next CODE_REF comment)
   const limitedWindow = searchWindow.substring(0, searchLimit);
   const codeBlockPattern = /```([\w]*)\s*\n([\s\S]*?)```/;
   const match = codeBlockPattern.exec(limitedWindow);
@@ -108,11 +108,11 @@ function findCodeBlockNearComment(
 }
 
 /**
- * CODE_REFコメント移動の修正アクションを作成
+ * Create fix action to move CODE_REF comment
  *
- * @param error エラー情報
- * @param codeBlock コードブロックの情報
- * @returns 修正アクション
+ * @param error Error information
+ * @param codeBlock Code block information
+ * @returns Fix action
  */
 function createMoveCommentFix(
   error: CodeRefError,
@@ -121,41 +121,41 @@ function createMoveCommentFix(
   return {
     type: 'MOVE_CODE_REF_COMMENT',
     error,
-    description: `CODE_REFコメントをコードブロックの直前に移動`,
+    description: `Move CODE_REF comment before code block`,
     preview: '',
     codeBlockPosition: codeBlock,
   };
 }
 
 /**
- * CODE_BLOCK_MISSINGの修正アクションを作成
+ * Create fix action for CODE_BLOCK_MISSING
  */
 export function createBlockMissingFix(error: CodeRefError): FixAction {
   const { ref } = error;
 
-  // 0. ファイル全体参照の場合は早期リターン（コードブロック不要）
+  // 0. Early return for whole file reference (no code block needed)
   if (ref.startLine === null && !ref.symbolPath) {
-    // ファイル全体参照はCODE_BLOCK_MISSINGエラーにならないはずだが、
-    // 念のためエラーをスローする
-    throw new Error('ファイル全体参照にはコードブロックは不要です');
+    // Whole file reference shouldn't cause CODE_BLOCK_MISSING error,
+    // but throw error just in case
+    throw new Error('Whole file reference does not need code block');
   }
 
-  // 1. 既存のコードブロックを検索（行番号指定またはシンボル指定がある場合のみ）
+  // 1. Search for existing code block (only when line numbers or symbols are specified)
   const docContent = fs.readFileSync(ref.docFile, 'utf-8');
   const existingBlock = findCodeBlockNearComment(docContent, ref.fullMatch);
 
   if (existingBlock) {
-    // コードブロックが存在 → コメントを移動
+    // Code block exists → move comment
     return createMoveCommentFix(error, existingBlock);
   }
 
-  // 2. コードブロックが見つからない → 既存のロジック（挿入）
+  // 2. Code block not found → existing logic (insert)
   const projectRoot = path.resolve(__dirname, '../../..');
   const absolutePath = path.resolve(projectRoot, ref.refPath);
 
-  // シンボル指定のみで行番号がない場合
+  // Only symbol specified without line numbers
   if (ref.symbolPath && (ref.startLine === null || ref.endLine === null)) {
-    // AST解析でシンボル全体を抽出
+    // Extract entire symbol using AST analysis
     const fileContent = fs.readFileSync(absolutePath, 'utf-8');
     const matches = findSymbolInAST(fileContent, absolutePath, {
       className: ref.className,
@@ -163,10 +163,10 @@ export function createBlockMissingFix(error: CodeRefError): FixAction {
     });
 
     if (matches.length === 0) {
-      throw new Error(`シンボル "${ref.symbolPath}" が見つかりません`);
+      throw new Error(`Symbol "${ref.symbolPath}" not found`);
     }
 
-    // 複数マッチの場合は最初のものを使用
+    // Use first match if multiple matches
     const symbolMatch = matches[0];
     const codeBlock = extractLinesFromFile(
       absolutePath,
@@ -182,15 +182,15 @@ export function createBlockMissingFix(error: CodeRefError): FixAction {
     return {
       type: 'INSERT_CODE_BLOCK',
       error,
-      description: `${ref.refPath}#${ref.symbolPath} (${symbolMatch.startLine}-${symbolMatch.endLine}行目) からコードブロックを挿入`,
+      description: `Insert code block from ${ref.refPath}#${ref.symbolPath} (lines ${symbolMatch.startLine}-${symbolMatch.endLine})`,
       preview,
       newCodeBlock: codeBlock,
     };
   }
 
-  // 行番号指定がある場合
+  // When line numbers are specified
   if (ref.startLine === null || ref.endLine === null) {
-    throw new Error('CODE_BLOCK_MISSINGには行番号指定またはシンボル指定が必要です');
+    throw new Error('CODE_BLOCK_MISSING requires line numbers or symbol specification');
   }
 
   const codeBlock = extractLinesFromFile(absolutePath, ref.startLine, ref.endLine);
@@ -203,21 +203,21 @@ export function createBlockMissingFix(error: CodeRefError): FixAction {
   return {
     type: 'INSERT_CODE_BLOCK',
     error,
-    description: `${ref.refPath}:${ref.startLine}-${ref.endLine} からコードブロックを挿入`,
+    description: `Insert code block from ${ref.refPath}:${ref.startLine}-${ref.endLine}`,
     preview,
     newCodeBlock: codeBlock,
   };
 }
 
 /**
- * CODE_CONTENT_MISMATCHの修正アクションを作成
+ * Create fix action for CODE_CONTENT_MISMATCH
  */
 export function createContentMismatchFix(error: CodeRefError): FixAction | FixAction[] {
   const { ref } = error;
   const projectRoot = path.resolve(__dirname, '../../..');
   const absolutePath = path.resolve(projectRoot, ref.refPath);
 
-  // シンボル指定のみの場合（行番号なし）: 複数のオプションを返す
+  // When only symbol is specified (no line numbers): return multiple options
   if (ref.symbolPath && (ref.startLine === null || ref.endLine === null)) {
     const fileContent = fs.readFileSync(absolutePath, 'utf-8');
     const matches = findSymbolInAST(fileContent, absolutePath, {
@@ -233,11 +233,11 @@ export function createContentMismatchFix(error: CodeRefError): FixAction | FixAc
         symbolMatch.endLine
       );
 
-      // オプション1: コードブロックを完全なコードに置き換え
+      // Option 1: Replace code block with complete code
       const option1: FixAction = {
         type: 'REPLACE_CODE_BLOCK',
         error,
-        description: `コードブロックをシンボル全体（${symbolMatch.startLine}-${symbolMatch.endLine}行目、${symbolMatch.endLine - symbolMatch.startLine + 1}行）に置き換え`,
+        description: `Replace code block with entire symbol (lines ${symbolMatch.startLine}-${symbolMatch.endLine}, ${symbolMatch.endLine - symbolMatch.startLine + 1} lines)`,
         preview:
           symbolCode.length > 300
             ? `\`\`\`typescript\n${symbolCode.substring(0, 300)}...\n\`\`\` (${symbolMatch.endLine - symbolMatch.startLine + 1}行)`
@@ -245,33 +245,33 @@ export function createContentMismatchFix(error: CodeRefError): FixAction | FixAc
         newCodeBlock: symbolCode,
       };
 
-      // オプション2: シンボル指定を削除して行番号指定に変更
+      // Option 2: Remove symbol specification and change to line number specification
       const oldComment = ref.fullMatch;
       const newComment = `<!-- CODE_REF: ${ref.refPath}:${symbolMatch.startLine}-${symbolMatch.endLine} -->`;
 
       const option2: FixAction = {
         type: 'UPDATE_LINE_NUMBERS',
         error,
-        description: `シンボル指定を削除して行番号指定に変更（コードブロックは維持、手動調整が必要）`,
+        description: `Remove symbol specification and change to line number specification (maintain code block, manual adjustment needed)`,
         preview: `${oldComment}\n→ ${newComment}`,
         newStartLine: symbolMatch.startLine,
         newEndLine: symbolMatch.endLine,
-        newCodeBlock: ref.codeBlock, // 既存のコードブロックを維持
+        newCodeBlock: ref.codeBlock, // Maintain existing code block
       };
 
       return [option1, option2];
     }
   }
 
-  // 行番号指定がある場合の既存ロジック
+  // Existing logic when line numbers are specified
   if (ref.startLine === null || ref.endLine === null) {
-    throw new Error('CODE_CONTENT_MISMATCHには行番号指定またはシンボル指定が必要です');
+    throw new Error('CODE_CONTENT_MISMATCH requires line numbers or symbol specification');
   }
 
   const actualCode = extractLinesFromFile(absolutePath, ref.startLine, ref.endLine);
 
-  // AST解析を使って、指定された行範囲が不完全なスコープ（関数の途中など）でないかチェック
-  // 開始行のみを使用してスコープを検出（範囲全体を使うと誤検出の可能性があるため）
+  // Check if specified line range is incomplete scope (e.g., middle of function) using AST analysis
+  // Detect scope using only start line (to avoid false detection when using entire range)
   const fileContent = fs.readFileSync(absolutePath, 'utf-8');
   const expandedMatches = expandMatchToScope({
     filePath: absolutePath,
@@ -279,17 +279,17 @@ export function createContentMismatchFix(error: CodeRefError): FixAction | FixAc
     fileContent,
   });
 
-  // 拡張結果が元の範囲と異なり、かつ高信頼度の場合は行番号も更新
+  // Update line numbers if expansion result differs from original range and has high confidence
   const expanded = expandedMatches[0];
   if (
     expanded?.confidence === 'high' &&
     (expanded.start !== ref.startLine || expanded.end !== ref.endLine)
   ) {
-    // スコープ拡張が成功した場合は行番号も更新
+    // Update line numbers if scope expansion succeeds
     const expandedCode = extractLinesFromFile(absolutePath, expanded.start, expanded.end);
     const scopeInfo = expanded.scopeType ? ` (${expanded.scopeType})` : '';
     console.log(
-      `   ℹ️  AST解析により ${ref.startLine}-${ref.endLine} を ${expanded.start}-${expanded.end} に拡張${scopeInfo}`
+      `   ℹ️  Expanded ${ref.startLine}-${ref.endLine} to ${expanded.start}-${expanded.end} using AST analysis${scopeInfo}`
     );
 
     const oldComment = ref.fullMatch;
@@ -298,7 +298,7 @@ export function createContentMismatchFix(error: CodeRefError): FixAction | FixAc
     return {
       type: 'UPDATE_LINE_NUMBERS',
       error,
-      description: `AST解析により行番号を ${ref.startLine}-${ref.endLine} から ${expanded.start}-${expanded.end} に更新し、コードブロックを置換`,
+      description: `Update line numbers from ${ref.startLine}-${ref.endLine} to ${expanded.start}-${expanded.end} using AST analysis and replace code block`,
       preview: `${oldComment}\n→ ${newComment}`,
       newStartLine: expanded.start,
       newEndLine: expanded.end,
@@ -306,29 +306,29 @@ export function createContentMismatchFix(error: CodeRefError): FixAction | FixAc
     };
   }
 
-  // AST拡張が不要または失敗した場合は、従来通りコードブロックのみ置換
+  // If AST expansion is unnecessary or fails, replace only code block as before
   const expectedPreview = error.expectedCode?.substring(0, 100) || '';
   const actualPreview = actualCode.substring(0, 100);
 
   return {
     type: 'REPLACE_CODE_BLOCK',
     error,
-    description: 'コードブロックを実際のコード内容で置換',
-    preview: `期待: ${expectedPreview}${expectedPreview.length >= 100 ? '...' : ''}\n実際: ${actualPreview}${actualPreview.length >= 100 ? '...' : ''}`,
+    description: 'Replace code block with actual code content',
+    preview: `Expected: ${expectedPreview}${expectedPreview.length >= 100 ? '...' : ''}\nActual: ${actualPreview}${actualPreview.length >= 100 ? '...' : ''}`,
     newCodeBlock: actualCode,
   };
 }
 
 /**
- * LINE_OUT_OF_RANGEの修正アクションを作成
+ * Create fix action for LINE_OUT_OF_RANGE
  */
 export function createLineOutOfRangeFix(error: CodeRefError): FixAction {
   const { ref } = error;
 
-  // エラーメッセージから行数を抽出
+  // Extract line count from error message
   const match = /(\d+)\s*>\s*(\d+)/.exec(error.message);
   if (!match) {
-    throw new Error('LINE_OUT_OF_RANGEエラーメッセージから行数を取得できません');
+    throw new Error('Cannot get line count from LINE_OUT_OF_RANGE error message');
   }
 
   const totalLines = parseInt(match[2], 10);
@@ -338,7 +338,7 @@ export function createLineOutOfRangeFix(error: CodeRefError): FixAction {
   return {
     type: 'UPDATE_END_LINE',
     error,
-    description: `終了行を ${ref.endLine} から ${totalLines} (ファイル末尾) に修正`,
+    description: `Fix end line from ${ref.endLine} to ${totalLines} (end of file)`,
     preview: `${oldComment}\n→ ${newComment}`,
     newStartLine: ref.startLine!,
     newEndLine: totalLines,
@@ -346,11 +346,11 @@ export function createLineOutOfRangeFix(error: CodeRefError): FixAction {
 }
 
 /**
- * SYMBOL_RANGE_MISMATCHの修正アクションを作成
+ * Create fix action for SYMBOL_RANGE_MISMATCH
  */
 export function createSymbolRangeMismatchFix(error: CodeRefError): FixAction {
   if (!error.suggestedSymbol) {
-    throw new Error('SYMBOL_RANGE_MISMATCHにはsuggestedSymbolが必要です');
+    throw new Error('SYMBOL_RANGE_MISMATCH requires suggestedSymbol');
   }
 
   const { ref } = error;
@@ -362,7 +362,7 @@ export function createSymbolRangeMismatchFix(error: CodeRefError): FixAction {
   return {
     type: 'UPDATE_SYMBOL_RANGE',
     error,
-    description: `シンボル "${ref.symbolPath}" の行番号を ${ref.startLine}-${ref.endLine} から ${suggested.startLine}-${suggested.endLine} に更新`,
+    description: `Update line numbers for symbol "${ref.symbolPath}" from ${ref.startLine}-${ref.endLine} to ${suggested.startLine}-${suggested.endLine}`,
     preview: `${oldComment}\n→ ${newComment}`,
     newStartLine: suggested.startLine,
     newEndLine: suggested.endLine,
@@ -370,27 +370,27 @@ export function createSymbolRangeMismatchFix(error: CodeRefError): FixAction {
 }
 
 /**
- * MULTIPLE_SYMBOLS_FOUNDの修正アクションを作成（対話的に選択）
+ * Create fix action for MULTIPLE_SYMBOLS_FOUND (interactive selection)
  */
 export async function createMultipleSymbolsFoundFix(
   error: CodeRefError,
   rl: readline.Interface
 ): Promise<FixAction | null> {
   if (!error.foundSymbols || error.foundSymbols.length === 0) {
-    throw new Error('MULTIPLE_SYMBOLS_FOUNDにはfoundSymbolsが必要です');
+    throw new Error('MULTIPLE_SYMBOLS_FOUND requires foundSymbols');
   }
 
   const { ref } = error;
 
   const options = error.foundSymbols.map((symbol) => {
     const classInfo = symbol.className ? `${symbol.className}#` : '';
-    return `行 ${symbol.startLine}-${symbol.endLine} (${classInfo}${symbol.memberName})`;
+    return `Line ${symbol.startLine}-${symbol.endLine} (${classInfo}${symbol.memberName})`;
   });
 
   const selectedIndex = await askSelectOption(
     rl,
     options,
-    `⚠️  シンボル "${ref.symbolPath}" が${error.foundSymbols.length}箇所で見つかりました。どの位置を使用しますか？`
+    `⚠️  Symbol "${ref.symbolPath}" found in ${error.foundSymbols.length} locations. Which position should be used?`
   );
 
   const selected = error.foundSymbols[selectedIndex];
@@ -401,7 +401,7 @@ export async function createMultipleSymbolsFoundFix(
   return {
     type: 'UPDATE_SYMBOL_RANGE',
     error,
-    description: `シンボル "${ref.symbolPath}" の行番号を追加: ${selected.startLine}-${selected.endLine}`,
+    description: `Add line numbers for symbol "${ref.symbolPath}": ${selected.startLine}-${selected.endLine}`,
     preview: `${oldComment}\n→ ${newComment}`,
     newStartLine: selected.startLine,
     newEndLine: selected.endLine,
@@ -409,7 +409,7 @@ export async function createMultipleSymbolsFoundFix(
 }
 
 /**
- * エラータイプに基づいて修正アクションを作成
+ * Create fix action based on error type
  */
 export async function createFixAction(
   error: CodeRefError,
@@ -432,7 +432,7 @@ export async function createFixAction(
       return createSymbolRangeMismatchFix(error);
     case 'MULTIPLE_SYMBOLS_FOUND':
       if (!rl) {
-        throw new Error('MULTIPLE_SYMBOLS_FOUNDにはreadline.Interfaceが必要です');
+        throw new Error('MULTIPLE_SYMBOLS_FOUND requires readline.Interface');
       }
       return await createMultipleSymbolsFoundFix(error, rl);
     default:
@@ -441,8 +441,8 @@ export async function createFixAction(
 }
 
 /**
- * マークダウンファイルに修正を適用
- * @returns ライン delta（正の数は行追加、負の数は行削除、0は行数変化なし）
+ * Apply fix to markdown file
+ * @returns Line delta (positive: lines added, negative: lines removed, 0: no change)
  */
 export function applyFix(action: FixAction): number {
   const filePath = action.error.ref.docFile;
@@ -452,12 +452,12 @@ export function applyFix(action: FixAction): number {
   switch (action.type) {
     case 'UPDATE_LINE_NUMBERS':
     case 'UPDATE_END_LINE': {
-      // CODE_REFコメントを更新
+      // Update CODE_REF comment
       const oldComment = action.error.ref.fullMatch;
       const newComment = `<!-- CODE_REF: ${action.error.ref.refPath}:${action.newStartLine}-${action.newEndLine} -->`;
       content = replaceCodeRefComment(content, oldComment, newComment);
 
-      // コードブロックも更新（存在する場合）
+      // Also update code block (if exists)
       if (action.newCodeBlock) {
         const blockPos = findCodeBlockPosition(content, newComment);
         if (blockPos) {
@@ -480,7 +480,7 @@ export function applyFix(action: FixAction): number {
 
     case 'REPLACE_CODE_BLOCK': {
       if (!action.error.ref.codeBlock) {
-        throw new Error('コードブロックが見つかりません');
+        throw new Error('Code block not found');
       }
       content = replaceCodeBlock(content, action.error.ref.codeBlock, action.newCodeBlock!);
       break;
@@ -488,7 +488,7 @@ export function applyFix(action: FixAction): number {
 
     case 'MOVE_CODE_REF_COMMENT': {
       if (!action.codeBlockPosition) {
-        throw new Error('MOVE_CODE_REF_COMMENTにはcodeBlockPositionが必要です');
+        throw new Error('MOVE_CODE_REF_COMMENT requires codeBlockPosition');
       }
 
       content = moveCodeRefCommentBeforeCodeBlock(
@@ -502,13 +502,13 @@ export function applyFix(action: FixAction): number {
 
   fs.writeFileSync(filePath, content, 'utf-8');
 
-  // ライン deltaを返す
+  // Return line delta
   const newLines = content.split('\n').length;
   return newLines - originalLines;
 }
 
 /**
- * 優先順位付けのコンテキスト
+ * Prioritization context
  */
 interface PrioritizationContext {
   originalStart: number;
@@ -516,29 +516,29 @@ interface PrioritizationContext {
 }
 
 /**
- * 信頼度とスコープタイプを考慮した優先順位付け
+ * Prioritization considering confidence and scope type
  *
- * @param matches 拡張されたマッチの配列
- * @param context 優先順位付けのコンテキスト（元の行番号）
- * @returns 優先順位付けされたマッチ（信頼度・スコープタイプ考慮）
+ * @param matches Array of expanded matches
+ * @param context Prioritization context (original line numbers)
+ * @returns Prioritized matches (considering confidence and scope type)
  */
 function prioritizeMatchesWithConfidence(
   matches: ExpandedMatch[],
   context: PrioritizationContext
 ): ExpandedMatch[] {
   return matches.sort((a, b) => {
-    // 1. 信頼度で優先（最優先）
+    // 1. Prioritize by confidence (highest priority)
     const confidenceScore = { high: 3, medium: 2, low: 1 };
     const confDiff = confidenceScore[b.confidence] - confidenceScore[a.confidence];
     if (confDiff !== 0) return confDiff;
 
-    // 2. 元の行番号との近接度で優先
+    // 2. Prioritize by proximity to original line numbers
     const distanceA = Math.abs(a.start - context.originalStart);
     const distanceB = Math.abs(b.start - context.originalStart);
     const distDiff = distanceA - distanceB;
     if (distDiff !== 0) return distDiff;
 
-    // 3. スコープタイプの優先順位
+    // 3. Scope type priority
     const scopePriority = {
       interface: 5,
       type: 4,
@@ -551,13 +551,13 @@ function prioritizeMatchesWithConfidence(
       scopePriority[b.scopeType || 'unknown'] - scopePriority[a.scopeType || 'unknown'];
     if (scopeDiff !== 0) return scopeDiff;
 
-    // 4. 短い範囲を優先（より具体的なマッチ）
+    // 4. Prioritize shorter range (more specific match)
     return a.end - a.start - (b.end - b.start);
   });
 }
 
 /**
- * 複数マッチの処理
+ * Handle multiple matches
  */
 export async function handleMultipleMatches(
   error: CodeRefError,
@@ -572,7 +572,7 @@ export async function handleMultipleMatches(
   const projectRoot = path.resolve(__dirname, '../../..');
   const absolutePath = path.resolve(projectRoot, ref.refPath);
 
-  // AST解析によるスコープ拡張版を使用
+  // Use AST analysis with scope expansion
   const matches = searchCodeInFileWithScopeExpansion(absolutePath, ref.codeBlock);
 
   if (matches.length === 0) {
@@ -580,21 +580,21 @@ export async function handleMultipleMatches(
   }
 
   if (matches.length === 1) {
-    // 単一マッチ - 修正アクションを作成
+    // Single match - create fix action
     const match = matches[0];
     const confidenceInfo =
       match.confidence === 'high' && match.scopeType
         ? ` (${match.scopeType})`
         : match.confidence === 'low'
-          ? ' (低信頼度)'
+          ? ' (low confidence)'
           : '';
     console.log(
-      `\n✓ ${ref.refPath} で単一マッチを検出: 行 ${match.start}-${match.end}${confidenceInfo}`
+      `\n✓ Detected single match in ${ref.refPath}: lines ${match.start}-${match.end}${confidenceInfo}`
     );
     return {
       type: 'UPDATE_LINE_NUMBERS',
       error,
-      description: `行番号を ${ref.startLine}-${ref.endLine} から ${match.start}-${match.end} に更新`,
+      description: `Update line numbers from ${ref.startLine}-${ref.endLine} to ${match.start}-${match.end}`,
       preview: `<!-- CODE_REF: ${ref.refPath}:${match.start}-${match.end} -->`,
       newStartLine: match.start,
       newEndLine: match.end,
@@ -602,24 +602,24 @@ export async function handleMultipleMatches(
     };
   }
 
-  // 複数マッチ - 優先順位付けして自動選択を試みる
+  // Multiple matches - try automatic selection with prioritization
   const sortedMatches = prioritizeMatchesWithConfidence(matches, {
     originalStart: ref.startLine!,
     originalEnd: ref.endLine!,
   });
 
-  // 信頼度が高いマッチが1つだけなら自動選択
+  // Auto-select if only one high-confidence match
   const highConfidenceMatches = sortedMatches.filter((m) => m.confidence === 'high');
   if (highConfidenceMatches.length === 1) {
     const bestMatch = highConfidenceMatches[0];
     const scopeInfo = bestMatch.scopeType ? ` (${bestMatch.scopeType})` : '';
     console.log(
-      `\n✓ ${ref.refPath} で最も適切なマッチを自動選択: 行 ${bestMatch.start}-${bestMatch.end}${scopeInfo}`
+      `\n✓ Auto-selected most appropriate match in ${ref.refPath}: lines ${bestMatch.start}-${bestMatch.end}${scopeInfo}`
     );
     return {
       type: 'UPDATE_LINE_NUMBERS',
       error,
-      description: `行番号を ${ref.startLine}-${ref.endLine} から ${bestMatch.start}-${bestMatch.end} に更新`,
+      description: `Update line numbers from ${ref.startLine}-${ref.endLine} to ${bestMatch.start}-${bestMatch.end}`,
       preview: `<!-- CODE_REF: ${ref.refPath}:${bestMatch.start}-${bestMatch.end} -->`,
       newStartLine: bestMatch.start,
       newEndLine: bestMatch.end,
@@ -627,30 +627,30 @@ export async function handleMultipleMatches(
     };
   }
 
-  // それ以外はユーザーに選択させる
-  console.log(`\n⚠️  ${ref.refPath} でコードが ${matches.length} 箇所見つかりました:`);
+  // Otherwise let user choose
+  console.log(`\n⚠️  Code found in ${matches.length} locations in ${ref.refPath}:`);
   const options = sortedMatches.map((m) => {
     const confidenceLabel =
-      m.confidence === 'high' ? '高' : m.confidence === 'medium' ? '中' : '低';
+      m.confidence === 'high' ? 'high' : m.confidence === 'medium' ? 'medium' : 'low';
     const scopeInfo = m.scopeType && m.scopeType !== 'unknown' ? `, ${m.scopeType}` : '';
-    return `行 ${m.start}-${m.end} (信頼度: ${confidenceLabel}${scopeInfo})`;
+    return `Line ${m.start}-${m.end} (confidence: ${confidenceLabel}${scopeInfo})`;
   });
 
-  const selection = await askSelectOption(rl, options, 'どの位置を使用しますか？');
+  const selection = await askSelectOption(rl, options, 'Which position should be used?');
   const selectedMatch = sortedMatches[selection];
 
-  // 選択されたマッチの信頼度が低い場合は警告
+  // Warn if selected match has low confidence
   if (selectedMatch.confidence === 'low') {
-    console.warn('⚠️  スコープ検出の信頼度が低いため、結果を確認してください。');
+    console.warn('⚠️  Scope detection confidence is low, please verify the result.');
   }
   if (selectedMatch.expansionType === 'none') {
-    console.warn('⚠️  構造的な解析ができなかったため、単純な文字列マッチングを使用しています。');
+    console.warn('⚠️  Structural analysis failed, using simple string matching.');
   }
 
   return {
     type: 'UPDATE_LINE_NUMBERS',
     error,
-    description: `行番号を ${ref.startLine}-${ref.endLine} から ${selectedMatch.start}-${selectedMatch.end} に更新`,
+    description: `Update line numbers from ${ref.startLine}-${ref.endLine} to ${selectedMatch.start}-${selectedMatch.end}`,
     preview: `<!-- CODE_REF: ${ref.refPath}:${selectedMatch.start}-${selectedMatch.end} -->`,
     newStartLine: selectedMatch.start,
     newEndLine: selectedMatch.end,
