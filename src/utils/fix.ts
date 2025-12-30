@@ -240,7 +240,7 @@ export function createContentMismatchFix(error: CodeRefError): FixAction | FixAc
         description: `Replace code block with entire symbol (lines ${symbolMatch.startLine}-${symbolMatch.endLine}, ${symbolMatch.endLine - symbolMatch.startLine + 1} lines)`,
         preview:
           symbolCode.length > 300
-            ? `\`\`\`typescript\n${symbolCode.substring(0, 300)}...\n\`\`\` (${symbolMatch.endLine - symbolMatch.startLine + 1}行)`
+            ? `\`\`\`typescript\n${symbolCode.substring(0, 300)}...\n\`\`\` (${symbolMatch.endLine - symbolMatch.startLine + 1} lines)`
             : `\`\`\`typescript\n${symbolCode}\n\`\`\``,
         newCodeBlock: symbolCode,
       };
