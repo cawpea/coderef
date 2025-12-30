@@ -1,12 +1,12 @@
 #!/usr/bin/env tsx
 
 /**
- * validate:docs:codeで検出されたエラーを対話的に修正するスクリプト
+ * Interactive script to fix errors detected by validate:docs:code
  *
- * 使用方法:
- *   tsx scripts/coderef/fix.ts                # デフォルト: バックアップなし
+ * Usage:
+ *   tsx scripts/coderef/fix.ts                # Default: no backup
  *   tsx scripts/coderef/fix.ts --dry-run
- *   tsx scripts/coderef/fix.ts --auto --backup  # バックアップを作成する場合
+ *   tsx scripts/coderef/fix.ts --auto --backup  # With backup
  *   npm run coderef:fix
  */
 
@@ -20,20 +20,20 @@ import type { CodeRefError, FixOptions, FixResult } from '@/utils/types';
 import { extractCodeRefs, findMarkdownFiles, validateCodeRef } from '@/core/validate';
 import { loadFixConfig, getDocsPath, type CodeRefFixConfig } from '@/config';
 
-// コマンドライン引数のパース
+// Parse command line arguments
 function parseArgs(): FixOptions {
   const args = process.argv.slice(2);
 
   return {
     dryRun: args.includes('--dry-run'),
     auto: args.includes('--auto'),
-    noBackup: !args.includes('--backup'), // デフォルトでバックアップなし（--backupで有効化）
+    noBackup: !args.includes('--backup'), // Default: no backup (enabled with --backup)
     verbose: args.includes('--verbose') || args.includes('-v'),
   };
 }
 
 /**
- * グループ化されたエラー
+ * Grouped errors
  */
 interface ErrorGroup {
   docFile: string;
@@ -41,7 +41,7 @@ interface ErrorGroup {
 }
 
 /**
- * エラーを収集
+ * Collect errors
  */
 function collectErrors(config: CodeRefFixConfig): ErrorGroup[] {
   const docsPath = getDocsPath(config);
@@ -72,12 +72,12 @@ function collectErrors(config: CodeRefFixConfig): ErrorGroup[] {
 }
 
 /**
- * メイン処理
+ * Main process
  */
 export async function main(): Promise<void> {
   const options = parseArgs();
 
-  // 設定を読み込み
+  // Load configuration
   const config = loadFixConfig({
     dryRun: options.dryRun,
     auto: options.auto,
@@ -85,25 +85,25 @@ export async function main(): Promise<void> {
     verbose: options.verbose,
   });
 
-  console.log('🔧 CODE_REFエラーの修正を開始します...\n');
+  console.log('🔧 Starting CODE_REF error fixes...\n');
 
   if (options.dryRun) {
-    console.log('⚠️  DRY RUNモード: 実際の変更は行いません\n');
+    console.log('⚠️  DRY RUN mode: No actual changes will be made\n');
   }
 
-  // エラーを収集
+  // Collect errors
   const errorGroups = collectErrors(config);
 
   if (errorGroups.length === 0) {
-    console.log('✅ 修正可能なエラーは見つかりませんでした');
+    console.log('✅ No fixable errors found');
     process.exit(0);
   }
 
-  // 統計情報
+  // Statistics
   const totalErrors = errorGroups.reduce((sum, g) => sum + g.errors.length, 0);
-  console.log(`📊 ${errorGroups.length}個のファイルで${totalErrors}個の修正可能なエラーを検出\n`);
+  console.log(`📊 Detected ${totalErrors} fixable error(s) in ${errorGroups.length} file(s)\n`);
 
-  // 対話インターフェース
+  // Interactive interface
   const rl = createPromptInterface();
   const fixResults: FixResult[] = [];
   const backupFiles = new Set<string>();
@@ -111,36 +111,36 @@ export async function main(): Promise<void> {
   try {
     for (const group of errorGroups) {
       console.log(`\n📄 ${path.relative(config.projectRoot, group.docFile)}`);
-      console.log(`   ${group.errors.length}個のエラー\n`);
+      console.log(`   ${group.errors.length} error(s)\n`);
 
-      // エラーをdocLineNumber降順（下から上へ）にソート
-      // 下部の修正が上部の行番号に影響を与えないようにするため
+      // Sort errors in descending order by docLineNumber (bottom to top)
+      // To prevent fixes at the bottom from affecting line numbers at the top
       const sortedErrors = group.errors.sort((a, b) => {
         const lineA = a.ref.docLineNumber ?? Infinity;
         const lineB = b.ref.docLineNumber ?? Infinity;
-        return lineB - lineA; // 降順
+        return lineB - lineA; // descending
       });
 
-      let _lineOffset = 0; // 累積オフセットを追跡（将来のエッジケース対応用）
+      let _lineOffset = 0; // Track cumulative offset (for future edge case handling)
 
       for (const error of sortedErrors) {
         console.log(`\n❌ ${error.type}: ${error.message}`);
         console.log(
-          `   参照: ${path.relative(config.projectRoot, error.ref.docFile)}${error.ref.docLineNumber ? `:${error.ref.docLineNumber}` : ''}`
+          `   Reference: ${path.relative(config.projectRoot, error.ref.docFile)}${error.ref.docLineNumber ? `:${error.ref.docLineNumber}` : ''}`
         );
 
-        // 修正アクションを作成
+        // Create fix action
         let action;
 
         if (error.type === 'CODE_LOCATION_MISMATCH') {
-          // 複数マッチの処理
+          // Handle multiple matches
           action = await handleMultipleMatches(error, rl);
         } else {
           const fixActionResult = await createFixAction(error, rl);
 
-          // 複数のオプションがある場合、ユーザーに選択させる
+          // If there are multiple options, let the user choose
           if (Array.isArray(fixActionResult)) {
-            console.log('\n🛠️ 修正方法を選択してください：\n');
+            console.log('\n🛠️ Please select a fix method:\n');
 
             fixActionResult.forEach((opt, index) => {
               console.log(`  ${index + 1}. ${opt.description}`);
@@ -152,28 +152,25 @@ export async function main(): Promise<void> {
             });
 
             if (options.auto) {
-              // autoモードの場合は最初のオプションを自動選択
-              console.log('   ℹ️  autoモードのため、オプション1を自動選択します\n');
+              // Auto-select first option in auto mode
+              console.log('   ℹ️  Auto-selecting option 1 in auto mode\n');
               action = fixActionResult[0];
             } else {
-              // ユーザーに選択させる
+              // Let user choose
               const selection = await new Promise<number>((resolve) => {
-                rl.question(
-                  `修正方法を選択してください (1-${fixActionResult.length}): `,
-                  (answer) => {
-                    const num = parseInt(answer, 10);
-                    if (num >= 1 && num <= fixActionResult.length) {
-                      resolve(num - 1);
-                    } else {
-                      console.log('   ⚠️  無効な選択です。スキップします。');
-                      resolve(-1);
-                    }
+                rl.question(`Select fix method (1-${fixActionResult.length}): `, (answer) => {
+                  const num = parseInt(answer, 10);
+                  if (num >= 1 && num <= fixActionResult.length) {
+                    resolve(num - 1);
+                  } else {
+                    console.log('   ⚠️  Invalid selection. Skipping.');
+                    resolve(-1);
                   }
-                );
+                });
               });
 
               if (selection === -1) {
-                console.log('   ⏭️  スキップしました');
+                console.log('   ⏭️  Skipped');
                 continue;
               }
 
@@ -185,56 +182,56 @@ export async function main(): Promise<void> {
         }
 
         if (!action) {
-          console.log('   ⚠️  このエラーは修正できません');
+          console.log('   ⚠️  This error cannot be fixed');
           continue;
         }
 
-        // プレビュー表示（単一オプションの場合のみ）
+        // Display preview (only for single option)
         if (!Array.isArray(action)) {
           displayFixPreview(action);
         }
 
-        // 確認
+        // Confirmation
         let shouldFix = options.auto;
         if (!options.auto) {
-          shouldFix = await askYesNo(rl, '\nこの修正を適用しますか？', false);
+          shouldFix = await askYesNo(rl, '\nApply this fix?', false);
         }
 
         if (!shouldFix) {
-          console.log('   ⏭️  スキップしました');
+          console.log('   ⏭️  Skipped');
           continue;
         }
 
-        // Dry runチェック
+        // Dry run check
         if (options.dryRun) {
-          console.log('   ✅ [DRY RUN] 修正をシミュレートしました');
+          console.log('   ✅ [DRY RUN] Simulated fix');
           fixResults.push({ success: true, action });
           continue;
         }
 
-        // バックアップ作成（ファイルごとに1回のみ）
+        // Create backup (once per file)
         let backupPath: string | undefined;
         if (!options.noBackup && !backupFiles.has(group.docFile)) {
           backupPath = createBackup(group.docFile);
           backupFiles.add(group.docFile);
-          console.log(`   💾 バックアップ作成: ${path.basename(backupPath)}`);
+          console.log(`   💾 Backup created: ${path.basename(backupPath)}`);
         }
 
-        // 修正を適用
+        // Apply fix
         try {
           const lineDelta = applyFix(action);
-          _lineOffset += lineDelta; // オフセットを累積
+          _lineOffset += lineDelta; // Accumulate offset
 
-          // デバッグ用のログ
+          // Debug log
           if (lineDelta !== 0) {
             console.log(`   📊 Line delta: ${lineDelta > 0 ? '+' : ''}${lineDelta}`);
           }
 
-          console.log('   ✅ 修正を適用しました');
+          console.log('   ✅ Fix applied');
           fixResults.push({ success: true, action, backupPath });
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err);
-          console.log(`   ❌ 修正に失敗しました: ${errorMsg}`);
+          console.log(`   ❌ Fix failed: ${errorMsg}`);
           fixResults.push({ success: false, action, error: errorMsg, backupPath });
         }
       }
@@ -243,18 +240,18 @@ export async function main(): Promise<void> {
     rl.close();
   }
 
-  // 結果サマリー
+  // Result summary
   console.log(`\n${'='.repeat(60)}`);
-  console.log('📊 修正結果サマリー\n');
+  console.log('📊 Fix Results Summary\n');
 
   const successful = fixResults.filter((r) => r.success).length;
   const failed = fixResults.filter((r) => !r.success).length;
 
-  console.log(`✅ 成功: ${successful}個`);
-  console.log(`❌ 失敗: ${failed}個`);
+  console.log(`✅ Successful: ${successful}`);
+  console.log(`❌ Failed: ${failed}`);
 
   if (backupFiles.size > 0 && !options.noBackup) {
-    console.log(`\n💾 バックアップファイル: ${backupFiles.size}個`);
+    console.log(`\n💾 Backup files: ${backupFiles.size}`);
     for (const file of backupFiles) {
       const backupPath = `${file}.backup`;
       console.log(`   ${path.relative(config.projectRoot, backupPath)}`);
@@ -264,10 +261,10 @@ export async function main(): Promise<void> {
   process.exit(failed > 0 ? 1 : 0);
 }
 
-// スクリプトとして実行された場合
+// When executed as a script
 if (require.main === module) {
   main().catch((error) => {
-    console.error('\n❌ エラーが発生しました:', error);
+    console.error('\n❌ An error occurred:', error);
     process.exit(1);
   });
 }
