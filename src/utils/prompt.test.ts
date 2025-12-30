@@ -242,8 +242,7 @@ describe('prompt', () => {
 
       displayFixPreview(action, testProjectRoot);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges:');
-      expect(consoleLogSpy).toHaveBeenCalledWith('- Description: Update line numbers');
+      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges: Update line numbers');
     });
 
     it('INSERT_CODE_BLOCKタイプの修正プレビューを表示すること', () => {
@@ -267,8 +266,7 @@ describe('prompt', () => {
 
       displayFixPreview(action, testProjectRoot);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges:');
-      expect(consoleLogSpy).toHaveBeenCalledWith('- Description: Insert code block');
+      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges: Insert code block');
       expect(consoleLogSpy).toHaveBeenCalledWith('\x1b[32m+ Insert code block:\x1b[0m');
     });
 
@@ -295,8 +293,7 @@ describe('prompt', () => {
 
       displayFixPreview(action, testProjectRoot);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges:');
-      expect(consoleLogSpy).toHaveBeenCalledWith('- Description: Replace code block');
+      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges: Replace code block');
     });
 
     it('CODE_LOCATION_MISMATCHタイプの修正プレビューを表示すること（コードブロックなし）', () => {
@@ -319,8 +316,7 @@ describe('prompt', () => {
 
       displayFixPreview(action, testProjectRoot);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges:');
-      expect(consoleLogSpy).toHaveBeenCalledWith('- Description: Update line numbers');
+      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges: Update line numbers');
       expect(consoleLogSpy).toHaveBeenCalledWith('Simple preview text');
     });
 
@@ -347,8 +343,7 @@ describe('prompt', () => {
 
       displayFixPreview(action, testProjectRoot);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges:');
-      expect(consoleLogSpy).toHaveBeenCalledWith('- Description: Replace code block');
+      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges: Replace code block');
     });
 
     it('UPDATE_END_LINEタイプの修正プレビューを表示すること', () => {
@@ -376,8 +371,7 @@ describe('prompt', () => {
 
       displayFixPreview(action, testProjectRoot);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges:');
-      expect(consoleLogSpy).toHaveBeenCalledWith('- Description: Update end line number');
+      expect(consoleLogSpy).toHaveBeenCalledWith('\nChanges: Update end line number');
     });
   });
 });
