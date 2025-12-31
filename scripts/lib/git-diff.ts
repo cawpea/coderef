@@ -13,7 +13,7 @@ export function execGit(args: string[]): string {
     });
     return result.trim();
   } catch (error: any) {
-    throw new Error(`Git command failed: ${error.message}`, { cause: error });
+    throw new Error(`Git command failed: ${error.message}`);
   }
 }
 
@@ -133,6 +133,6 @@ export function getChangedFiles(baseBranch?: string): GitDiff {
 
     return { files, stats };
   } catch (error: any) {
-    throw new Error(`Failed to get changed files: ${error.message}`, { cause: error });
+    throw new Error(`Failed to get changed files: ${error.message}`);
   }
 }
