@@ -153,6 +153,84 @@ function findFunctionByName(
 }
 
 /**
+ * 変数宣言内に指定された名前の変数が含まれるか
+ */
+function hasVariableNamed(varDecl: TSESTree.VariableDeclaration, targetName: string): boolean {
+  for (const declarator of varDecl.declarations) {
+    // 単純な識別子: const x = 1;
+    if (declarator.id.type === 'Identifier' && declarator.id.name === targetName) {
+      return true;
+    }
+
+    // オブジェクトデストラクチャリング: const { x, y } = obj;
+    if (declarator.id.type === 'ObjectPattern') {
+      for (const prop of declarator.id.properties) {
+        if (prop.type === 'Property' && prop.value.type === 'Identifier') {
+          if (prop.value.name === targetName) {
+            return true;
+          }
+        }
+        // RestElement: const { ...rest } = obj;
+        if (prop.type === 'RestElement' && prop.argument.type === 'Identifier') {
+          if (prop.argument.name === targetName) {
+            return true;
+          }
+        }
+      }
+    }
+
+    // 配列デストラクチャリング: const [x, y] = arr;
+    if (declarator.id.type === 'ArrayPattern') {
+      for (const element of declarator.id.elements) {
+        if (element?.type === 'Identifier' && element.name === targetName) {
+          return true;
+        }
+        // RestElement: const [...rest] = arr;
+        if (element?.type === 'RestElement' && element.argument.type === 'Identifier') {
+          if (element.argument.name === targetName) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * トップレベル変数を検索
+ */
+function findVariableByName(
+  ast: TSESTree.Program,
+  variableName: string
+): TSESTree.VariableDeclaration[] {
+  const variables: TSESTree.VariableDeclaration[] = [];
+
+  // トップレベルの変数のみ検索
+  for (const statement of ast.body) {
+    // Case 1: エクスポートされた変数
+    if (statement.type === 'ExportNamedDeclaration' && statement.declaration) {
+      const decl = statement.declaration;
+      if (decl.type === 'VariableDeclaration') {
+        if (hasVariableNamed(decl, variableName)) {
+          variables.push(decl);
+        }
+      }
+    }
+
+    // Case 2: トップレベル変数
+    if (statement.type === 'VariableDeclaration') {
+      if (hasVariableNamed(statement, variableName)) {
+        variables.push(statement);
+      }
+    }
+  }
+
+  return variables;
+}
+
+/**
  * シンボルパスをパースしてクラス名とメンバー名に分割
  */
 export function parseSymbolPath(symbolPath: string): {
@@ -220,6 +298,21 @@ export function findSymbolInAST(
           startLine: getStartLineWithJSDoc(funcNode, fileContent),
           endLine: funcNode.loc.end.line,
           scopeType: 'function',
+          confidence: 'high',
+        });
+      }
+    }
+
+    // 変数を検索（トップレベル）
+    const variables = findVariableByName(ast, options.memberName);
+
+    for (const varNode of variables) {
+      if (varNode.loc) {
+        matches.push({
+          memberName: options.memberName,
+          startLine: getStartLineWithJSDoc(varNode, fileContent),
+          endLine: varNode.loc.end.line,
+          scopeType: varNode.kind as 'const' | 'let' | 'var',
           confidence: 'high',
         });
       }

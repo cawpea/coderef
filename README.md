@@ -67,10 +67,17 @@ Reference code by line numbers:
 <!-- CODE_REF: src/index.ts:10-20 -->
 ```
 
-Reference code by symbol name:
+Reference code by symbol name (functions):
 
 ```markdown
 <!-- CODE_REF: src/index.ts#myFunction -->
+```
+
+Reference variables (const, let, var):
+
+```markdown
+<!-- CODE_REF: src/config.ts#API_KEY -->
+<!-- CODE_REF: src/constants.ts#MAX_RETRIES -->
 ```
 
 Reference class methods:

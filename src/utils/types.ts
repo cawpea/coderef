@@ -138,6 +138,6 @@ export interface SymbolMatch {
   memberName: string; // メソッド名または関数名
   startLine: number; // 開始行番号（JSDocコメント含む）
   endLine: number; // 終了行番号
-  scopeType: 'function' | 'class' | 'method'; // スコープタイプ
+  scopeType: 'function' | 'class' | 'method' | 'const' | 'let' | 'var'; // スコープタイプ
   confidence: 'high' | 'medium' | 'low'; // 信頼度
 }
