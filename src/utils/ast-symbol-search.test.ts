@@ -254,6 +254,220 @@ describe('ast-symbol-search', () => {
     });
   });
 
+  describe('変数検索', () => {
+    it('トップレベルのconst宣言を検索すること', () => {
+      const fileContent = `
+        /**
+         * API key constant
+         */
+        const API_KEY = 'test-key';
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'API_KEY',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'API_KEY',
+        scopeType: 'const',
+        confidence: 'high',
+      });
+      expect(matches[0].className).toBeUndefined();
+    });
+
+    it('トップレベルのlet宣言を検索すること', () => {
+      const fileContent = `
+        let counter = 0;
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'counter',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'counter',
+        scopeType: 'let',
+        confidence: 'high',
+      });
+    });
+
+    it('トップレベルのvar宣言を検索すること', () => {
+      const fileContent = `
+        var globalVar = 'test';
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'globalVar',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'globalVar',
+        scopeType: 'var',
+        confidence: 'high',
+      });
+    });
+
+    it('エクスポートされた変数を検索すること', () => {
+      const fileContent = `
+        /**
+         * Exported configuration
+         */
+        export const CONFIG = { port: 3000 };
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'CONFIG',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'CONFIG',
+        scopeType: 'const',
+        confidence: 'high',
+      });
+    });
+
+    it('オブジェクトデストラクチャリングから変数を検索すること', () => {
+      const fileContent = `
+        const { API_KEY, SECRET } = process.env;
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'API_KEY',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'API_KEY',
+        scopeType: 'const',
+        confidence: 'high',
+      });
+    });
+
+    it('配列デストラクチャリングから変数を検索すること', () => {
+      const fileContent = `
+        const [first, second, third] = items;
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'second',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'second',
+        scopeType: 'const',
+        confidence: 'high',
+      });
+    });
+
+    it('オブジェクトのrest構文から変数を検索すること', () => {
+      const fileContent = `
+        const { a, b, ...rest } = obj;
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'rest',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'rest',
+        scopeType: 'const',
+        confidence: 'high',
+      });
+    });
+
+    it('配列のrest構文から変数を検索すること', () => {
+      const fileContent = `
+        const [first, ...remaining] = arr;
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'remaining',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'remaining',
+        scopeType: 'const',
+        confidence: 'high',
+      });
+    });
+
+    it('複数宣言子を含む文全体を返すこと', () => {
+      const fileContent = `
+        const x = 1, y = 2, z = 3;
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'y',
+      });
+
+      expect(matches).toHaveLength(1);
+      expect(matches[0]).toMatchObject({
+        memberName: 'y',
+        scopeType: 'const',
+        confidence: 'high',
+      });
+      // 全体の文が返されることを確認（開始行と終了行が同じ）
+      expect(matches[0].startLine).toBe(matches[0].endLine);
+    });
+
+    it('変数のJSDocコメントを含む行番号を取得すること', () => {
+      const fileContent = `
+        /**
+         * Multi-line JSDoc for variable
+         * with detailed description
+         */
+        export const MAX_RETRIES = 3;
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'MAX_RETRIES',
+      });
+
+      expect(matches).toHaveLength(1);
+      // JSDocの開始行が含まれることを確認
+      const fileLines = fileContent.split('\n');
+      const jsdocStartLine = fileLines.findIndex((line) => line.includes('/**'));
+      expect(matches[0].startLine).toBeLessThanOrEqual(jsdocStartLine + 1); // 1-indexed
+    });
+
+    it('関数と変数が同じ名前の場合、関数を優先すること', () => {
+      const fileContent = `
+        const config = { port: 3000 };
+        function config() {
+          return { port: 3000 };
+        }
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'config',
+      });
+
+      // 関数と変数の両方が見つかる
+      expect(matches.length).toBeGreaterThanOrEqual(1);
+      // 最初のマッチは関数であること
+      expect(matches[0].scopeType).toBe('function');
+    });
+
+    it('変数が存在しない場合は空配列に含まれないこと', () => {
+      const fileContent = `
+        const existingVar = 'test';
+      `;
+
+      const matches = findSymbolInAST(fileContent, '/test/file.ts', {
+        memberName: 'nonExistentVar',
+      });
+
+      expect(matches).toHaveLength(0);
+    });
+  });
+
   describe('ASTキャッシュ', () => {
     it('同じファイルを複数回パースしないこと', () => {
       const fileContent = `
