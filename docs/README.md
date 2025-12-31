@@ -20,6 +20,7 @@ Start here if you want to contribute:
 - [Git Conventions](development/git-conventions.md) - Commit message format
 - [Testing Guide](development/testing-guide.md) - Writing and running tests
 - [Release Process](development/release.md) - Release procedures and automation
+- [Documentation Guidelines](development/documentation.md) - Writing and maintaining docs
 
 ## Architecture & Design
 

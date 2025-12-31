@@ -20,11 +20,11 @@ import { associateCodeBlocksWithRefs } from '@/utils/markdown';
 import type { CodeRef, CodeRefError } from '@/utils/types';
 import { loadConfig, type CodeRefConfig } from '@/config';
 
-// CODE_REF パターン定数
+// CODE_REF pattern constant
 const CODE_REF_PATTERN = /<!--\s*CODE_REF:\s*([^:#]+?)(?:#([^:]+?))?(?::(\d+)-(\d+))?\s*-->/g;
 
 /**
- * ディレクトリを再帰的に走査してマークダウンファイルを取得
+ * Recursively walk directory to get markdown files
  */
 export function findMarkdownFiles(dir: string): string[] {
   const files: string[] = [];
@@ -48,12 +48,12 @@ export function findMarkdownFiles(dir: string): string[] {
 }
 
 /**
- * コードブロックとインラインコードの範囲を検出
+ * Detect code block and inline code ranges
  */
 function getCodeBlockRanges(content: string): { start: number; end: number }[] {
   const ranges: { start: number; end: number }[] = [];
 
-  // トリプルバッククォートのコードブロック
+  // Triple backtick code blocks
   const codeBlockPattern = /```[\s\S]*?```/g;
   let match: RegExpExecArray | null;
 
@@ -64,7 +64,7 @@ function getCodeBlockRanges(content: string): { start: number; end: number }[] {
     });
   }
 
-  // インラインコード（バッククォート）
+  // Inline code (backticks)
   const inlineCodePattern = /`[^`\n]+?`/g;
   while ((match = inlineCodePattern.exec(content)) !== null) {
     ranges.push({
@@ -77,35 +77,35 @@ function getCodeBlockRanges(content: string): { start: number; end: number }[] {
 }
 
 /**
- * 位置がコードブロックまたはインラインコード内かチェック
+ * Check if position is inside code block or inline code
  */
 function isInsideCodeBlock(position: number, ranges: { start: number; end: number }[]): boolean {
   return ranges.some((range) => position >= range.start && position < range.end);
 }
 
 /**
- * CODE_REFコメントを抽出
+ * Extract CODE_REF comments
  */
 export function extractCodeRefs(content: string, filePath: string): CodeRef[] {
   const refs: CodeRef[] = [];
   let match: RegExpExecArray | null;
 
-  // コードブロックとインラインコードの範囲を事前に検出
+  // Pre-detect code block and inline code ranges
   const codeBlockRanges = getCodeBlockRanges(content);
 
   while ((match = CODE_REF_PATTERN.exec(content)) !== null) {
     const [fullMatch, refPath, symbolPath, startLine, endLine] = match;
 
-    // コードブロックまたはインラインコード内のCODE_REFは除外（サンプル表示用）
+    // Exclude CODE_REFs inside code blocks or inline code (for sample display)
     if (isInsideCodeBlock(match.index, codeBlockRanges)) {
       continue;
     }
 
-    // マッチ位置から行番号を計算（1-indexed）
+    // Calculate line number from match position (1-indexed)
     const beforeMatch = content.substring(0, match.index);
     const docLineNumber = beforeMatch.split('\n').length;
 
-    // シンボルパスをパース
+    // Parse symbol path
     let className: string | undefined;
     let memberName: string | undefined;
     if (symbolPath) {
@@ -121,40 +121,40 @@ export function extractCodeRefs(content: string, filePath: string): CodeRef[] {
       endLine: endLine ? parseInt(endLine, 10) : null,
       docFile: filePath,
       docLineNumber,
-      codeBlockStartOffset: match.index, // CODE_REFコメントの位置を保存
+      codeBlockStartOffset: match.index, // Save CODE_REF comment position
       symbolPath: symbolPath?.trim(),
       className,
       memberName,
     });
   }
 
-  // コードブロックを関連付け
+  // Associate code blocks
   return associateCodeBlocksWithRefs(content, refs);
 }
 
 /**
- * コード内容の検証
+ * Validate code content
  */
 export function validateCodeContent(ref: CodeRef, config?: CodeRefConfig): CodeRefError[] {
   const cfg = config || loadConfig();
   const projectRoot = cfg.projectRoot;
   const errors: CodeRefError[] = [];
 
-  // 行数指定がない場合の処理
+  // Process when line numbers not specified
   if (ref.startLine === null || ref.endLine === null) {
-    // シンボル指定がある場合は、シンボル全体との完全一致検証
+    // When symbol specified, validate exact match with entire symbol
     if (ref.symbolPath) {
-      // コードブロックがない場合はエラーを返す
+      // Return error if no code block
       if (!ref.codeBlock || ref.codeBlock.trim() === '') {
         errors.push({
           type: 'CODE_BLOCK_MISSING',
-          message: `シンボル指定のCODE_REF（${ref.refPath}#${ref.symbolPath}）の後にコードブロックが見つかりません。`,
+          message: `Code block not found after CODE_REF with symbol specification (${ref.refPath}#${ref.symbolPath}).`,
           ref,
         });
         return errors;
       }
 
-      // シンボルの範囲を取得
+      // Get symbol range
       const absolutePath = path.resolve(projectRoot, ref.refPath);
       const fileContent = fs.readFileSync(absolutePath, 'utf-8');
       const matches = findSymbolInAST(fileContent, absolutePath, {
@@ -170,11 +170,11 @@ export function validateCodeContent(ref: CodeRef, config?: CodeRefConfig): CodeR
           symbolMatch.endLine
         );
 
-        // コードブロックとシンボル全体を比較（空白改行は無視）
+        // Compare code block with entire symbol (ignore whitespace and newlines)
         if (!compareCodeContent(symbolCode, ref.codeBlock)) {
           errors.push({
             type: 'CODE_CONTENT_MISMATCH',
-            message: `シンボル全体とコードブロックが一致しません。`,
+            message: `Code block does not match entire symbol.`,
             ref,
             actualCode: symbolCode.substring(0, 200),
             expectedCode: ref.codeBlock.substring(0, 200),
@@ -183,19 +183,19 @@ export function validateCodeContent(ref: CodeRef, config?: CodeRefConfig): CodeR
       }
       return errors;
     }
-    // シンボル指定がない場合はスキップ（ファイル全体参照）
+    // Skip if no symbol specified (whole file reference)
     return errors;
   }
 
-  // シンボル指定がある場合でも、行番号指定があれば通常の検証を続行
+  // Continue normal validation if line numbers specified, even with symbol specification
 
-  // コードブロックがない場合
+  // If no code block
   if (!ref.codeBlock || ref.codeBlock.trim() === '') {
     const refLocation =
       ref.startLine !== null ? `${ref.refPath}:${ref.startLine}-${ref.endLine}` : ref.refPath;
     errors.push({
       type: 'CODE_BLOCK_MISSING',
-      message: `CODE_REF（${refLocation}）の後にコードブロックが見つかりません。`,
+      message: `Code block not found after CODE_REF (${refLocation}).`,
       ref,
     });
     return errors;
@@ -204,31 +204,31 @@ export function validateCodeContent(ref: CodeRef, config?: CodeRefConfig): CodeR
   const absolutePath = path.resolve(projectRoot, ref.refPath);
 
   try {
-    // 実ファイルから指定行のコードを取得
+    // Get code from actual file at specified lines
     const actualCode = extractLinesFromFile(absolutePath, ref.startLine, ref.endLine);
 
-    // コード内容を比較
+    // Compare code content
     if (!compareCodeContent(actualCode, ref.codeBlock)) {
-      // 一致しない → ファイル全体から検索
+      // Not matched → search entire file
       const matches = searchCodeInFile(absolutePath, ref.codeBlock);
 
       if (matches.length > 0) {
-        // コードは存在するが別の場所にある
+        // Code exists but at different location
         const firstMatch = matches[0];
         const matchInfo =
-          matches.length > 1 ? `コードは${matches.length}箇所で見つかりました。最初の出現: ` : '';
+          matches.length > 1 ? `Code found in ${matches.length} locations. First occurrence: ` : '';
 
         errors.push({
           type: 'CODE_LOCATION_MISMATCH',
-          message: `${ref.refPath}の行数が一致しません。${matchInfo}(expect: ${ref.startLine}-${ref.endLine}, result: ${firstMatch.start}-${firstMatch.end})`,
+          message: `Line numbers do not match in ${ref.refPath}. ${matchInfo}(expect: ${ref.startLine}-${ref.endLine}, result: ${firstMatch.start}-${firstMatch.end})`,
           ref,
           suggestedLines: firstMatch,
         });
       } else {
-        // コード内容が異なる
+        // Code content differs
         errors.push({
           type: 'CODE_CONTENT_MISMATCH',
-          message: `${ref.refPath} のコードが一致しません。`,
+          message: `Code does not match in ${ref.refPath}.`,
           ref,
           actualCode: actualCode.substring(0, 200),
           expectedCode: ref.codeBlock.substring(0, 200),
@@ -239,7 +239,7 @@ export function validateCodeContent(ref: CodeRef, config?: CodeRefConfig): CodeR
     const errorMessage = error instanceof Error ? error.message : String(error);
     errors.push({
       type: 'READ_ERROR',
-      message: `コード比較中にエラーが発生しました: ${errorMessage}`,
+      message: `Error occurred during code comparison: ${errorMessage}`,
       ref,
     });
   }
@@ -248,25 +248,25 @@ export function validateCodeContent(ref: CodeRef, config?: CodeRefConfig): CodeR
 }
 
 /**
- * シンボル指定の検証
+ * Validate symbol specification
  */
 export function validateSymbolRef(ref: CodeRef, config?: CodeRefConfig): CodeRefError[] {
   const cfg = config || loadConfig();
   const projectRoot = cfg.projectRoot;
   const errors: CodeRefError[] = [];
 
-  // シンボル指定がない場合はスキップ
+  // Skip if no symbol specification
   if (!ref.symbolPath) {
     return errors;
   }
 
   const absolutePath = path.resolve(projectRoot, ref.refPath);
 
-  // TypeScript/JavaScriptファイルチェック
+  // TypeScript/JavaScript file check
   if (!isTypeScriptOrJavaScript(absolutePath)) {
     errors.push({
       type: 'NOT_TYPESCRIPT_FILE',
-      message: `シンボル指定はTypeScript/JavaScriptファイルのみサポート: ${ref.refPath}`,
+      message: `Symbol specification only supported for TypeScript/JavaScript files: ${ref.refPath}`,
       ref,
     });
     return errors;
@@ -275,29 +275,29 @@ export function validateSymbolRef(ref: CodeRef, config?: CodeRefConfig): CodeRef
   const fileContent = fs.readFileSync(absolutePath, 'utf-8');
 
   try {
-    // シンボルを検索
+    // Search for symbol
     const matches = findSymbolInAST(fileContent, absolutePath, {
       className: ref.className,
       memberName: ref.memberName!,
     });
 
     if (matches.length === 0) {
-      // シンボルが見つからない
+      // Symbol not found
       errors.push({
         type: 'SYMBOL_NOT_FOUND',
-        message: `シンボル "${ref.symbolPath}" が見つかりません`,
+        message: `Symbol "${ref.symbolPath}" not found`,
         ref,
       });
     } else if (matches.length > 1 && !ref.startLine) {
-      // 複数マッチ（行番号ヒントなし）
+      // Multiple matches (no line number hint)
       errors.push({
         type: 'MULTIPLE_SYMBOLS_FOUND',
-        message: `シンボル "${ref.symbolPath}" が${matches.length}箇所で見つかりました。行番号を指定してください`,
+        message: `Symbol "${ref.symbolPath}" found in ${matches.length} locations. Please specify line numbers`,
         ref,
         foundSymbols: matches,
       });
     } else {
-      // 行番号が指定されている場合は検証
+      // Validate if line numbers specified
       if (ref.startLine && ref.endLine) {
         const bestMatch = selectBestSymbolMatch(matches, {
           start: ref.startLine,
@@ -305,11 +305,11 @@ export function validateSymbolRef(ref: CodeRef, config?: CodeRefConfig): CodeRef
         });
 
         if (bestMatch) {
-          // 範囲が一致するかチェック
+          // Check if range matches
           if (bestMatch.startLine !== ref.startLine || bestMatch.endLine !== ref.endLine) {
             errors.push({
               type: 'SYMBOL_RANGE_MISMATCH',
-              message: `シンボル "${ref.symbolPath}" の範囲が一致しません (期待: ${ref.startLine}-${ref.endLine}, 実際: ${bestMatch.startLine}-${bestMatch.endLine})`,
+              message: `Symbol "${ref.symbolPath}" range does not match (expected: ${ref.startLine}-${ref.endLine}, actual: ${bestMatch.startLine}-${bestMatch.endLine})`,
               ref,
               suggestedSymbol: bestMatch,
             });
@@ -320,7 +320,7 @@ export function validateSymbolRef(ref: CodeRef, config?: CodeRefConfig): CodeRef
   } catch (error) {
     errors.push({
       type: 'READ_ERROR',
-      message: `AST解析エラー: ${error instanceof Error ? error.message : String(error)}`,
+      message: `AST parsing error: ${error instanceof Error ? error.message : String(error)}`,
       ref,
     });
   }
@@ -329,37 +329,37 @@ export function validateSymbolRef(ref: CodeRef, config?: CodeRefConfig): CodeRef
 }
 
 /**
- * 参照先のファイルと行番号の存在を確認
+ * Validate existence of referenced file and line numbers
  */
 export function validateCodeRef(ref: CodeRef, config?: CodeRefConfig): CodeRefError[] {
   const cfg = config || loadConfig();
   const projectRoot = cfg.projectRoot;
   const errors: CodeRefError[] = [];
 
-  // 相対パスを絶対パスに変換(プロジェクトルートからの相対パス)
+  // Convert relative path to absolute path (relative to project root)
   const absolutePath = path.resolve(projectRoot, ref.refPath);
 
-  // パストラバーサル攻撃を防ぐ: プロジェクトルート内に留まるか検証
+  // Prevent path traversal attacks: validate stays within project root
   if (!absolutePath.startsWith(projectRoot + path.sep)) {
     errors.push({
       type: 'PATH_TRAVERSAL',
-      message: `参照先のパスがプロジェクトルート外を指しています: ${ref.refPath}`,
+      message: `Referenced path points outside project root: ${ref.refPath}`,
       ref,
     });
     return errors;
   }
 
-  // ファイルの存在確認
+  // Check file existence
   if (!fs.existsSync(absolutePath)) {
     errors.push({
       type: 'FILE_NOT_FOUND',
-      message: `参照先のファイルが見つかりません: ${ref.refPath}`,
+      message: `Referenced file not found: ${ref.refPath}`,
       ref,
     });
     return errors;
   }
 
-  // 行番号が指定されている場合、行数をチェック
+  // Check line count if line numbers specified
   if (ref.startLine !== null && ref.endLine !== null) {
     try {
       const content = fs.readFileSync(absolutePath, 'utf-8');
@@ -369,7 +369,7 @@ export function validateCodeRef(ref: CodeRef, config?: CodeRefConfig): CodeRefEr
       if (ref.startLine < 1) {
         errors.push({
           type: 'INVALID_LINE_NUMBER',
-          message: `開始行番号が無効です（1未満）: ${ref.startLine}`,
+          message: `Start line number is invalid (less than 1): ${ref.startLine}`,
           ref,
         });
       }
@@ -377,7 +377,7 @@ export function validateCodeRef(ref: CodeRef, config?: CodeRefConfig): CodeRefEr
       if (ref.endLine > totalLines) {
         errors.push({
           type: 'LINE_OUT_OF_RANGE',
-          message: `終了行番号がファイルの行数を超えています: ${ref.endLine} > ${totalLines}`,
+          message: `End line number exceeds file line count: ${ref.endLine} > ${totalLines}`,
           ref,
         });
       }
@@ -385,7 +385,7 @@ export function validateCodeRef(ref: CodeRef, config?: CodeRefConfig): CodeRefEr
       if (ref.startLine > ref.endLine) {
         errors.push({
           type: 'INVALID_RANGE',
-          message: `開始行番号が終了行番号より大きいです: ${ref.startLine} > ${ref.endLine}`,
+          message: `Start line number is greater than end line number: ${ref.startLine} > ${ref.endLine}`,
           ref,
         });
       }
@@ -393,19 +393,19 @@ export function validateCodeRef(ref: CodeRef, config?: CodeRefConfig): CodeRefEr
       const errorMessage = error instanceof Error ? error.message : String(error);
       errors.push({
         type: 'READ_ERROR',
-        message: `ファイルの読み込みに失敗しました: ${errorMessage}`,
+        message: `Failed to read file: ${errorMessage}`,
         ref,
       });
     }
   }
 
-  // シンボル指定がある場合はシンボルバリデーション
+  // Symbol validation if symbol specified
   if (errors.length === 0 && ref.symbolPath) {
     const symbolErrors = validateSymbolRef(ref, cfg);
     errors.push(...symbolErrors);
   }
 
-  // コード内容の検証（既存のエラーがない場合のみ）
+  // Validate code content (only if no existing errors)
   if (errors.length === 0) {
     const contentErrors = validateCodeContent(ref, cfg);
     errors.push(...contentErrors);

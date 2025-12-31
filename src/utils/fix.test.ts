@@ -3,6 +3,7 @@
  */
 
 import * as fs from 'fs';
+import * as path from 'path';
 import type * as readline from 'readline';
 
 import { extractLinesFromFile, searchCodeInFileWithScopeExpansion } from '@/utils/code-comparison';
@@ -21,6 +22,7 @@ import {
 import * as markdownEdit from '@/utils/markdown-edit';
 import * as prompt from '@/utils/prompt';
 import type { CodeRefError, FixAction } from '@/utils/types';
+import type { CodeRefConfig } from '@/config';
 
 // モック設定
 jest.mock('fs');
@@ -43,6 +45,14 @@ const mockSearchCodeInFileWithScopeExpansion =
   >;
 const mockMarkdownEdit = markdownEdit as jest.Mocked<typeof markdownEdit>;
 const mockPrompt = prompt as jest.Mocked<typeof prompt>;
+
+// Mock config for tests
+const mockConfig: CodeRefConfig = {
+  projectRoot: path.resolve(__dirname, '../../..'),
+  docsDir: 'docs',
+  ignoreFile: '.docsignore',
+  verbose: false,
+};
 
 describe('isFixableError', () => {
   it('修正可能なエラータイプの場合にtrueを返すこと', () => {
@@ -101,12 +111,12 @@ describe('createLocationMismatchFix', () => {
 
     mockExtractLinesFromFile.mockReturnValue('code content');
 
-    const result = createLocationMismatchFix(error);
+    const result = createLocationMismatchFix(error, mockConfig);
 
     expect(result).toEqual({
       type: 'UPDATE_LINE_NUMBERS',
       error,
-      description: '行番号を 10-20 から 15-25 に更新',
+      description: 'Update line numbers from 10-20 to 15-25',
       preview: expect.stringContaining('test.ts:10-20'),
       newStartLine: 15,
       newEndLine: 25,
@@ -128,8 +138,8 @@ describe('createLocationMismatchFix', () => {
       },
     };
 
-    expect(() => createLocationMismatchFix(error)).toThrow(
-      'CODE_LOCATION_MISMATCHにはsuggestedLinesが必要です'
+    expect(() => createLocationMismatchFix(error, mockConfig)).toThrow(
+      'CODE_LOCATION_MISMATCH requires suggestedLines'
     );
   });
 });
@@ -159,12 +169,12 @@ describe('createBlockMissingFix', () => {
     );
     mockExtractLinesFromFile.mockReturnValue('code content');
 
-    const result = createBlockMissingFix(error);
+    const result = createBlockMissingFix(error, mockConfig);
 
     expect(result).toEqual({
       type: 'INSERT_CODE_BLOCK',
       error,
-      description: 'test.ts:10-20 からコードブロックを挿入',
+      description: 'Insert code block from test.ts:10-20',
       preview: expect.stringContaining('code content'),
       newCodeBlock: 'code content',
     });
@@ -184,8 +194,8 @@ describe('createBlockMissingFix', () => {
       },
     };
 
-    expect(() => createBlockMissingFix(error)).toThrow(
-      'ファイル全体参照にはコードブロックは不要です'
+    expect(() => createBlockMissingFix(error, mockConfig)).toThrow(
+      'Whole file reference does not need code block'
     );
   });
 });
@@ -218,7 +228,7 @@ describe('createContentMismatchFix', () => {
     const astScopeExpansion = require('./ast-scope-expansion'); // eslint-disable-line
     astScopeExpansion.expandMatchToScope = jest.fn().mockReturnValue([]);
 
-    const result = createContentMismatchFix(error) as FixAction;
+    const result = createContentMismatchFix(error, mockConfig) as FixAction;
 
     expect(result.type).toBe('REPLACE_CODE_BLOCK');
     expect(result.newCodeBlock).toBe('actual code');
@@ -254,7 +264,7 @@ describe('createContentMismatchFix', () => {
       },
     ]);
 
-    const result = createContentMismatchFix(error) as FixAction;
+    const result = createContentMismatchFix(error, mockConfig) as FixAction;
 
     expect(result.type).toBe('UPDATE_LINE_NUMBERS');
     expect(result.newStartLine).toBe(8);
@@ -283,7 +293,7 @@ describe('createLineOutOfRangeFix', () => {
     expect(result).toEqual({
       type: 'UPDATE_END_LINE',
       error,
-      description: '終了行を 150 から 100 (ファイル末尾) に修正',
+      description: 'Fix end line from 150 to 100 (end of file)',
       preview: expect.stringContaining('10-100'),
       newStartLine: 10,
       newEndLine: 100,
@@ -298,7 +308,7 @@ describe('createLineOutOfRangeFix', () => {
     };
 
     expect(() => createLineOutOfRangeFix(error)).toThrow(
-      'LINE_OUT_OF_RANGEエラーメッセージから行数を取得できません'
+      'Cannot get line count from LINE_OUT_OF_RANGE error message'
     );
   });
 });
@@ -332,7 +342,7 @@ describe('createSymbolRangeMismatchFix', () => {
     expect(result).toEqual({
       type: 'UPDATE_SYMBOL_RANGE',
       error,
-      description: 'シンボル "ClassName#methodName" の行番号を 10-20 から 15-25 に更新',
+      description: 'Update line numbers for symbol "ClassName#methodName" from 10-20 to 15-25',
       preview: expect.stringContaining('15-25'),
       newStartLine: 15,
       newEndLine: 25,
@@ -347,7 +357,7 @@ describe('createSymbolRangeMismatchFix', () => {
     };
 
     expect(() => createSymbolRangeMismatchFix(error)).toThrow(
-      'SYMBOL_RANGE_MISMATCHにはsuggestedSymbolが必要です'
+      'SYMBOL_RANGE_MISMATCH requires suggestedSymbol'
     );
   });
 });
@@ -396,7 +406,7 @@ describe('createMultipleSymbolsFoundFix', () => {
     expect(result).toEqual({
       type: 'UPDATE_SYMBOL_RANGE',
       error,
-      description: 'シンボル "methodName" の行番号を追加: 50-60',
+      description: 'Add line numbers for symbol "methodName": 50-60',
       preview: expect.stringContaining('50-60'),
       newStartLine: 50,
       newEndLine: 60,
@@ -413,7 +423,7 @@ describe('createMultipleSymbolsFoundFix', () => {
     const mockRl = {} as readline.Interface;
 
     await expect(createMultipleSymbolsFoundFix(error, mockRl)).rejects.toThrow(
-      'MULTIPLE_SYMBOLS_FOUNDにはfoundSymbolsが必要です'
+      'MULTIPLE_SYMBOLS_FOUND requires foundSymbols'
     );
   });
 });
@@ -430,7 +440,7 @@ describe('createFixAction', () => {
       ref: {} as any,
     };
 
-    const result = await createFixAction(error);
+    const result = await createFixAction(error, mockConfig);
 
     expect(result).toBeNull();
   });
@@ -452,7 +462,7 @@ describe('createFixAction', () => {
 
     mockExtractLinesFromFile.mockReturnValue('code content');
 
-    const result = (await createFixAction(error)) as FixAction;
+    const result = (await createFixAction(error, mockConfig)) as FixAction;
 
     expect(result?.type).toBe('UPDATE_LINE_NUMBERS');
   });
@@ -473,8 +483,8 @@ describe('createFixAction', () => {
       ],
     };
 
-    await expect(createFixAction(error)).rejects.toThrow(
-      'MULTIPLE_SYMBOLS_FOUNDにはreadline.Interfaceが必要です'
+    await expect(createFixAction(error, mockConfig)).rejects.toThrow(
+      'MULTIPLE_SYMBOLS_FOUND requires readline.Interface'
     );
   });
 });
@@ -521,7 +531,7 @@ describe('優先順位付けロジック', () => {
         { start: 15, end: 25, confidence: 'high', expansionType: 'ast', scopeType: 'function' },
       ]);
 
-      const result = await handleMultipleMatches(error, rl);
+      const result = await handleMultipleMatches(error, rl, mockConfig);
 
       expect(result).not.toBeNull();
       expect(result?.newStartLine).toBe(15);
@@ -545,7 +555,7 @@ describe('優先順位付けロジック', () => {
         { start: 100, end: 110, confidence: 'low', expansionType: 'none', scopeType: 'unknown' },
       ]);
 
-      const result = await handleMultipleMatches(error, rl);
+      const result = await handleMultipleMatches(error, rl, mockConfig);
 
       expect(result).not.toBeNull();
       expect(result?.newStartLine).toBe(10);
@@ -565,7 +575,7 @@ describe('優先順位付けロジック', () => {
         { start: 50, end: 60, confidence: 'medium', expansionType: 'none', scopeType: 'unknown' }, // 40行離れている
       ]);
 
-      const result = await handleMultipleMatches(error, rl);
+      const result = await handleMultipleMatches(error, rl, mockConfig);
 
       expect(result).not.toBeNull();
       // ソート後の配列から選択される（モックのreadlineが選択）
@@ -584,7 +594,7 @@ describe('優先順位付けロジック', () => {
         { start: 14, end: 24, confidence: 'high', expansionType: 'ast', scopeType: 'const' },
       ]);
 
-      const result = await handleMultipleMatches(error, rl);
+      const result = await handleMultipleMatches(error, rl, mockConfig);
 
       expect(result).not.toBeNull();
       // 複数のhigh信頼度マッチがあり、その中でスコープタイプの優先度が高いマッチが自動選択される
@@ -604,7 +614,7 @@ describe('優先順位付けロジック', () => {
         { start: 100, end: 110, confidence: 'high', expansionType: 'ast', scopeType: 'interface' }, // 遠いが高信頼度
       ]);
 
-      const result = await handleMultipleMatches(error, rl);
+      const result = await handleMultipleMatches(error, rl, mockConfig);
 
       expect(result).not.toBeNull();
       // 高信頼度が1つだけなので自動選択される
@@ -618,7 +628,7 @@ describe('優先順位付けロジック', () => {
 
       mockSearchCodeInFileWithScopeExpansion.mockReturnValue([]);
 
-      const result = await handleMultipleMatches(error, rl);
+      const result = await handleMultipleMatches(error, rl, mockConfig);
 
       expect(result).toBeNull();
     });
@@ -638,7 +648,7 @@ describe('優先順位付けロジック', () => {
       };
       const rl = createMockReadline();
 
-      const result = await handleMultipleMatches(error, rl);
+      const result = await handleMultipleMatches(error, rl, mockConfig);
 
       expect(result).toBeNull();
       expect(mockSearchCodeInFileWithScopeExpansion).not.toHaveBeenCalled();

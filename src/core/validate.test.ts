@@ -199,7 +199,7 @@ describe('validate-docs-code', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('FILE_NOT_FOUND');
-      expect(result[0].message).toBe('参照先のファイルが見つかりません: src/missing.ts');
+      expect(result[0].message).toBe('Referenced file not found: src/missing.ts');
     });
 
     it('パストラバーサルでPATH_TRAVERSALエラーを返すこと', () => {
@@ -294,7 +294,7 @@ describe('validate-docs-code', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('READ_ERROR');
-      expect(result[0].message).toBe('ファイルの読み込みに失敗しました: Permission denied');
+      expect(result[0].message).toBe('Failed to read file: Permission denied');
     });
 
     it('有効な行範囲指定では空のエラー配列を返すこと（コードブロックがない場合）', () => {
@@ -487,7 +487,7 @@ line4`;
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_CONTENT_MISMATCH');
       expect(result[0].message).toContain('src/example.ts');
-      expect(result[0].message).toContain('コードが一致しません');
+      expect(result[0].message).toContain('Code does not match');
     });
 
     it('CODE_BLOCK_MISSING: CODE_REFの後にコードブロックがない場合', () => {
@@ -506,7 +506,7 @@ line4`;
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_BLOCK_MISSING');
-      expect(result[0].message).toContain('の後にコードブロックが見つかりません');
+      expect(result[0].message).toContain('Code block not found after CODE_REF');
       expect(result[0].message).toContain('src/example.ts');
     });
 
@@ -541,7 +541,7 @@ line12`;
       // ここでは CODE_LOCATION_MISMATCH をチェック
       const locationMismatch = result.find((e) => e.type === 'CODE_LOCATION_MISMATCH');
       expect(locationMismatch).toBeDefined();
-      expect(locationMismatch!.message).toContain('コードは3箇所で見つかりました');
+      expect(locationMismatch!.message).toContain('Code found in 3 locations');
       expect(locationMismatch!.message).toContain('result: 1-2');
       expect(locationMismatch!.suggestedLines).toEqual({ start: 1, end: 2 });
     });
@@ -626,7 +626,7 @@ line4`;
 
       expect(result).toHaveLength(1);
       expect(result[0].type).toBe('CODE_BLOCK_MISSING');
-      expect(result[0].message).toContain('シンボル指定のCODE_REF');
+      expect(result[0].message).toContain('CODE_REF with symbol specification');
       expect(result[0].message).toContain('src/example.ts#myFunction');
     });
 

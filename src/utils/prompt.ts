@@ -78,13 +78,11 @@ export async function askSelectOption(
 /**
  * Display fix preview
  */
-export function displayFixPreview(action: FixAction): void {
-  console.log('\nChanges:');
-  console.log(`- Description: ${action.description}`);
+export function displayFixPreview(action: FixAction, projectRoot: string): void {
+  console.log(`\nChanges: ${action.description}`);
 
   // Display colored diff based on error type
   const { error } = action;
-  const projectRoot = path.resolve(__dirname, '../../..');
   const absolutePath = path.resolve(projectRoot, error.ref.refPath);
 
   switch (error.type) {
