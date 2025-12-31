@@ -132,6 +132,42 @@ The basic syntax is:
 - Keep referenced code snippets short and focused
 - Update documentation when refactoring referenced code
 
+## When to Update Documentation
+
+Documentation should be updated whenever user-facing code changes. The project includes an automatic validation script to help ensure documentation stays in sync with code.
+
+### Code Changes That Require Documentation Updates
+
+The following changes typically require documentation updates:
+
+- **CLI changes** (`src/cli/`) → Update `docs/user-guide/cli-usage.md`
+- **Public API changes** (`src/index.ts`) → Update `docs/user-guide/` and `docs/architecture/overview.md`
+- **Binary changes** (`bin/`) → Update `docs/user-guide/installation.md`
+- **Core functionality** (`src/core/`) → Update `docs/architecture/` as needed
+
+### Validation Workflow
+
+Before committing changes, validate your documentation updates:
+
+```bash
+npm run docs:validate
+```
+
+This script will:
+
+1. Detect whether your branch was created from `main` or `develop`
+2. Compare your changes against the base branch
+3. Check if documentation was updated when required
+4. Provide suggestions for which docs to update
+
+### Documentation Update Process
+
+1. **Make code changes** in your feature branch
+2. **Update relevant documentation** in `docs/`
+3. **Validate documentation** with `npm run docs:validate`
+4. **Test CODE_REF references** with `npm run build` (runs coderef validation)
+5. **Commit both code and docs** together
+
 ## Common Mistakes to Avoid
 
 - Don't use `<br>` tags (use blank lines)
@@ -141,3 +177,4 @@ The basic syntax is:
 - Don't commit documentation without testing examples
 - Don't use inline HTML when markdown suffices
 - Don't forget to update `docs/README.md` when adding new documents
+- Don't commit user-facing code changes without updating documentation
