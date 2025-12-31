@@ -27,10 +27,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Install rollup with native binaries
+        run: |
+          rm -rf node_modules/rollup
+          npm install rollup --no-save
 
       - name: Build package
         run: npm run build
