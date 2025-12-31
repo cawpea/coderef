@@ -1,3 +1,4 @@
+import { validateDocumentation } from './validate-docs';
 import { detectBaseBranch, getChangedFiles } from './lib/git-diff';
 import { requiresDocsUpdate, hasDocsChanges } from './lib/path-checker';
 
@@ -172,6 +173,129 @@ describe('validate-docs', () => {
       expect(result.stats.added).toBe(1);
       expect(result.stats.modified).toBe(1);
       expect(result.stats.deleted).toBe(1);
+    });
+  });
+
+  describe('validateDocumentation', () => {
+    it('should return skipped status when detectBaseBranch throws error', () => {
+      mockedDetectBaseBranch.mockImplementation(() => {
+        throw new Error('Cannot validate from main branch');
+      });
+
+      const result = validateDocumentation();
+
+      expect(result.status).toBe('skipped');
+      expect(result.skipReason).toBe('Cannot validate from main branch');
+    });
+
+    it('should return skipped status when no changes detected', () => {
+      mockedDetectBaseBranch.mockReturnValue('main');
+      mockedGetChangedFiles.mockReturnValue({
+        files: [],
+        stats: { added: 0, modified: 0, deleted: 0 },
+      });
+
+      const result = validateDocumentation();
+
+      expect(result.status).toBe('skipped');
+      expect(result.skipReason).toBe('No changes detected');
+      expect(result.baseBranch).toBe('main');
+    });
+
+    it('should return skipped status when docs update not required', () => {
+      mockedDetectBaseBranch.mockReturnValue('main');
+      mockedGetChangedFiles.mockReturnValue({
+        files: [{ path: 'README.md', status: 'M' }],
+        stats: { added: 0, modified: 1, deleted: 0 },
+      });
+      mockedRequiresDocsUpdate.mockReturnValue({
+        required: false,
+        reason: 'No user-facing code changes detected',
+        affectedPaths: [],
+        suggestions: [],
+      });
+
+      const result = validateDocumentation();
+
+      expect(result.status).toBe('skipped');
+      expect(result.skipReason).toBe('Documentation update not required for these changes');
+      expect(result.requirement?.required).toBe(false);
+    });
+
+    it('should return passed status when docs are updated with user-facing changes', () => {
+      mockedDetectBaseBranch.mockReturnValue('main');
+      mockedGetChangedFiles.mockReturnValue({
+        files: [
+          { path: 'src/cli/validate.ts', status: 'M' },
+          { path: 'docs/user-guide/cli-usage.md', status: 'M' },
+        ],
+        stats: { added: 0, modified: 2, deleted: 0 },
+      });
+      mockedRequiresDocsUpdate.mockReturnValue({
+        required: true,
+        reason: 'Changes detected in: src/cli/',
+        affectedPaths: ['src/cli/'],
+        suggestions: ['docs/user-guide/cli-usage.md'],
+      });
+      mockedHasDocsChanges.mockReturnValue(true);
+
+      const result = validateDocumentation();
+
+      expect(result.status).toBe('passed');
+      expect(result.docsUpdated).toBe(true);
+      expect(result.requirement?.required).toBe(true);
+    });
+
+    it('should return warning status when docs are not updated with user-facing changes', () => {
+      mockedDetectBaseBranch.mockReturnValue('main');
+      mockedGetChangedFiles.mockReturnValue({
+        files: [{ path: 'src/cli/validate.ts', status: 'M' }],
+        stats: { added: 0, modified: 1, deleted: 0 },
+      });
+      mockedRequiresDocsUpdate.mockReturnValue({
+        required: true,
+        reason: 'Changes detected in: src/cli/',
+        affectedPaths: ['src/cli/'],
+        suggestions: ['docs/user-guide/cli-usage.md'],
+      });
+      mockedHasDocsChanges.mockReturnValue(false);
+
+      const result = validateDocumentation();
+
+      expect(result.status).toBe('warning');
+      expect(result.docsUpdated).toBe(false);
+      expect(result.requirement?.suggestions).toContain('docs/user-guide/cli-usage.md');
+    });
+
+    it('should use provided base branch instead of detecting', () => {
+      mockedGetChangedFiles.mockReturnValue({
+        files: [{ path: 'src/index.ts', status: 'M' }],
+        stats: { added: 0, modified: 1, deleted: 0 },
+      });
+      mockedRequiresDocsUpdate.mockReturnValue({
+        required: true,
+        reason: 'Changes detected in: src/',
+        affectedPaths: ['src/'],
+        suggestions: [],
+      });
+      mockedHasDocsChanges.mockReturnValue(true);
+
+      const result = validateDocumentation('develop');
+
+      expect(result.baseBranch).toBe('develop');
+      expect(mockedDetectBaseBranch).not.toHaveBeenCalled();
+    });
+
+    it('should return error status when unexpected error occurs', () => {
+      mockedDetectBaseBranch.mockReturnValue('main');
+      mockedGetChangedFiles.mockImplementation(() => {
+        throw new Error('Git command failed');
+      });
+
+      const result = validateDocumentation();
+
+      expect(result.status).toBe('error');
+      expect(result.error?.message).toBe('Git command failed');
     });
   });
 });
