@@ -14,7 +14,7 @@ import { requiresDocsUpdate, hasDocsChanges } from './lib/path-checker';
 /**
  * Main validation function
  */
-async function main(): Promise<void> {
+function main(): void {
   console.log('🔍 Validating documentation updates...\n');
 
   try {
@@ -121,8 +121,5 @@ async function main(): Promise<void> {
 
 // Run main function
 if (require.main === module) {
-  main().catch((error) => {
-    console.error(chalk.red('Error:'), error);
-    process.exit(1);
-  });
+  main();
 }

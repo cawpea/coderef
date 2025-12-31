@@ -87,7 +87,7 @@ export function detectBaseBranch(): string {
 
     // Return the branch with fewer commits (more recent fork point)
     return commitsFromDevelop <= commitsFromMain ? 'develop' : 'main';
-  } catch (error: any) {
+  } catch (_error: any) {
     // Fallback to develop if merge-base fails
     return 'develop';
   }
