@@ -1,6 +1,6 @@
 # Documentation Index
 
-Welcome to the @cawpea/coderef documentation. This guide is organized into three main sections:
+Welcome to the docs-coderef documentation. This guide is organized into three main sections:
 
 ## For Users
 

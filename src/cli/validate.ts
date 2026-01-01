@@ -4,10 +4,10 @@
  * CLI for validating CODE_REF references in markdown documentation
  *
  * Usage:
- *   coderef validate                    # Validate all files
- *   coderef validate --verbose          # Verbose output
- *   coderef validate docs/README.md     # Specific file
- *   coderef validate docs/backend/      # Specific directory
+ *   docs-coderef validate                    # Validate all files
+ *   docs-coderef validate --verbose          # Verbose output
+ *   docs-coderef validate docs/README.md     # Specific file
+ *   docs-coderef validate docs/backend/      # Specific directory
  */
 
 import * as fs from 'fs';

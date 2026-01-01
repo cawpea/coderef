@@ -8,15 +8,15 @@
 ## Install the Package
 
 ```bash
-npm install --save-dev @cawpea/coderef
+npm install --save-dev docs-coderef
 ```
 
 You can also use yarn or pnpm:
 
 ```bash
 # yarn
-yarn add --dev @cawpea/coderef
+yarn add --dev docs-coderef
 
 # pnpm
-pnpm add --save-dev @cawpea/coderef
+pnpm add --save-dev docs-coderef
 ```

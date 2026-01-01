@@ -49,8 +49,8 @@ describe('Config System', () => {
       });
     });
 
-    describe('.coderefrc.json support', () => {
-      it('should load configuration from .coderefrc.json', () => {
+    describe('.docs-coderefrc.json support', () => {
+      it('should load configuration from .docs-coderefrc.json', () => {
         const configContent = {
           docsDir: 'documentation',
           ignoreFile: '.docignore',
@@ -58,7 +58,7 @@ describe('Config System', () => {
         };
 
         fs.writeFileSync(
-          path.join(testDir, '.coderefrc.json'),
+          path.join(testDir, '.docs-coderefrc.json'),
           JSON.stringify(configContent, null, 2)
         );
 
@@ -69,19 +69,19 @@ describe('Config System', () => {
         expect(config.verbose).toBe(true);
       });
 
-      it('should throw error for invalid .coderefrc.json', () => {
-        fs.writeFileSync(path.join(testDir, '.coderefrc.json'), 'invalid json{');
+      it('should throw error for invalid .docs-coderefrc.json', () => {
+        fs.writeFileSync(path.join(testDir, '.docs-coderefrc.json'), 'invalid json{');
 
-        expect(() => loadConfig()).toThrow('Failed to load .coderefrc.json');
+        expect(() => loadConfig()).toThrow('Failed to load .docs-coderefrc.json');
       });
     });
 
     describe('package.json support', () => {
-      it('should load configuration from package.json "coderef" field', () => {
+      it('should load configuration from package.json "docs-coderef" field', () => {
         const packageJson = {
           name: 'test-package',
           version: '1.0.0',
-          coderef: {
+          'docs-coderef': {
             docsDir: 'doc',
             verbose: true,
           },
@@ -95,7 +95,7 @@ describe('Config System', () => {
         expect(config.verbose).toBe(true);
       });
 
-      it('should ignore package.json without coderef field', () => {
+      it('should ignore package.json without docs-coderef field', () => {
         const packageJson = {
           name: 'test-package',
           version: '1.0.0',
@@ -119,9 +119,9 @@ describe('Config System', () => {
 
     describe('Environment variable support', () => {
       it('should load configuration from environment variables', () => {
-        process.env.CODEREF_DOCS_DIR = 'envdocs';
-        process.env.CODEREF_IGNORE_FILE = '.envignore';
-        process.env.CODEREF_VERBOSE = 'true';
+        process.env.DOCS_CODEREF_DOCS_DIR = 'envdocs';
+        process.env.DOCS_CODEREF_IGNORE_FILE = '.envignore';
+        process.env.DOCS_CODEREF_VERBOSE = 'true';
 
         const config = loadConfig();
 
@@ -130,10 +130,10 @@ describe('Config System', () => {
         expect(config.verbose).toBe(true);
       });
 
-      it('should handle CODEREF_PROJECT_ROOT', () => {
+      it('should handle DOCS_CODEREF_PROJECT_ROOT', () => {
         const customRoot = path.join(testDir, 'custom');
         fs.mkdirSync(customRoot);
-        process.env.CODEREF_PROJECT_ROOT = customRoot;
+        process.env.DOCS_CODEREF_PROJECT_ROOT = customRoot;
 
         const config = loadConfig();
 
@@ -141,7 +141,7 @@ describe('Config System', () => {
       });
 
       it('should parse verbose as boolean', () => {
-        process.env.CODEREF_VERBOSE = 'false';
+        process.env.DOCS_CODEREF_VERBOSE = 'false';
         const config = loadConfig();
         expect(config.verbose).toBe(false);
       });
@@ -154,16 +154,16 @@ describe('Config System', () => {
           path.join(testDir, 'package.json'),
           JSON.stringify({
             name: 'test',
-            coderef: { docsDir: 'package-docs', verbose: false },
+            'docs-coderef': { docsDir: 'package-docs', verbose: false },
           })
         );
 
         fs.writeFileSync(
-          path.join(testDir, '.coderefrc.json'),
+          path.join(testDir, '.docs-coderefrc.json'),
           JSON.stringify({ docsDir: 'rc-docs', ignoreFile: '.rcignore' })
         );
 
-        process.env.CODEREF_DOCS_DIR = 'env-docs';
+        process.env.DOCS_CODEREF_DOCS_DIR = 'env-docs';
       });
 
       it('should prioritize programmatic options over all other sources', () => {
@@ -176,19 +176,19 @@ describe('Config System', () => {
         expect(config.docsDir).toBe('env-docs');
       });
 
-      it('should prioritize .coderefrc.json over package.json', () => {
-        delete process.env.CODEREF_DOCS_DIR;
+      it('should prioritize .docs-coderefrc.json over package.json', () => {
+        delete process.env.DOCS_CODEREF_DOCS_DIR;
         const config = loadConfig();
         expect(config.docsDir).toBe('rc-docs');
         expect(config.ignoreFile).toBe('.rcignore');
       });
 
       it('should use package.json when higher priority sources dont specify a field', () => {
-        delete process.env.CODEREF_DOCS_DIR;
-        delete process.env.CODEREF_VERBOSE;
+        delete process.env.DOCS_CODEREF_DOCS_DIR;
+        delete process.env.DOCS_CODEREF_VERBOSE;
 
         fs.writeFileSync(
-          path.join(testDir, '.coderefrc.json'),
+          path.join(testDir, '.docs-coderefrc.json'),
           JSON.stringify({ ignoreFile: '.rcignore' })
         );
 
@@ -273,7 +273,7 @@ describe('Config System', () => {
 
     it('should inherit all base configuration options', () => {
       fs.writeFileSync(
-        path.join(testDir, '.coderefrc.json'),
+        path.join(testDir, '.docs-coderefrc.json'),
         JSON.stringify({ docsDir: 'documentation', verbose: true })
       );
 
@@ -356,7 +356,7 @@ describe('Config System', () => {
       fs.mkdirSync(packagesDir, { recursive: true });
 
       fs.writeFileSync(
-        path.join(packagesDir, '.coderefrc.json'),
+        path.join(packagesDir, '.docs-coderefrc.json'),
         JSON.stringify({ docsDir: '../../docs' })
       );
 

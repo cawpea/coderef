@@ -345,13 +345,13 @@ Always use paths relative to your project root.
 After adding CODE_REF comments, run validation:
 
 ```bash
-npx coderef validate
+npx docs-coderef validate
 ```
 
 If there are mismatches, fix them interactively:
 
 ```bash
-npx coderef fix
+npx docs-coderef fix
 ```
 
 For implementation details, see [CODE_REF Syntax Implementation](../architecture/code-ref-syntax.md).
