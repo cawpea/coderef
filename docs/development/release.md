@@ -237,7 +237,7 @@ git describe --tags --abbrev=0
 
 2. **Package Name Conflict**
    - Verify package with same name doesn't already exist on npm
-   - For scoped packages (`docs-coderef`), verify `publishConfig.access: "public"` is set
+   - For scoped packages (e.g., `@company/package-name`), verify `publishConfig.access: "public"` is set
 
 3. **Network Error**
    - May be a temporary error
