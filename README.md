@@ -1,4 +1,4 @@
-# @cawpea/coderef
+# docs-coderef
 
 > Validate and fix code references in markdown documentation
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-`@cawpea/coderef` is a tool to validate and automatically fix code references in markdown documentation. It ensures that code snippets in your documentation stay in sync with your actual source code.
+`docs-coderef` is a tool to validate and automatically fix code references in markdown documentation. It ensures that code snippets in your documentation stay in sync with your actual source code.
 
 ## Features
 
@@ -22,7 +22,7 @@
 ## Installation
 
 ```bash
-npm install --save-dev @cawpea/coderef
+npm install --save-dev docs-coderef
 ```
 
 ## Quick Start
@@ -31,19 +31,19 @@ npm install --save-dev @cawpea/coderef
 
 ```bash
 # Validate all CODE_REF references
-npx coderef validate
+npx docs-coderef validate
 
 # Fix errors interactively
-npx coderef fix
+npx docs-coderef fix
 
 # Auto-fix without prompts
-npx coderef fix --auto
+npx docs-coderef fix --auto
 ```
 
 ### Programmatic Usage
 
 ```typescript
-import { validate, fix } from '@cawpea/coderef';
+import { validate, fix } from 'docs-coderef';
 
 // Validate
 const result = await validate({
@@ -110,7 +110,7 @@ export function generateToken(userId: string): string {
 Call this function with a user ID to generate a valid token.
 ````
 
-When you run `npx coderef validate`, it will verify that the `generateToken` function exists in `src/auth/jwt.ts` and extract its implementation automatically.
+When you run `npx docs-coderef validate`, it will verify that the `generateToken` function exists in `src/auth/jwt.ts` and extract its implementation automatically.
 
 ### Example 2: Keeping Configuration Examples Up-to-Date
 
@@ -133,7 +133,7 @@ export const config = {
 These values are loaded at application startup.
 ````
 
-If the `config` object in your source code changes, running `npx coderef fix --auto` will automatically update the documentation to reflect the current implementation.
+If the `config` object in your source code changes, running `npx docs-coderef fix --auto` will automatically update the documentation to reflect the current implementation.
 
 ### Example 3: Documenting Specific Code Sections
 
@@ -165,7 +165,7 @@ For more examples and usage patterns, see [docs/user-guide/](docs/user-guide/).
 
 ## Configuration
 
-Create `.coderefrc.json` in your project root:
+Create `.docs-coderefrc.json` in your project root:
 
 ```json
 {

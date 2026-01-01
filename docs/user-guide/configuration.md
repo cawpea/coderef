@@ -2,7 +2,7 @@
 
 ## Configuration File
 
-Create `.coderefrc.json` in your project root:
+Create `.docs-coderefrc.json` in your project root:
 
 ```json
 {
@@ -19,9 +19,9 @@ Create `.coderefrc.json` in your project root:
 The tool loads configuration from multiple sources with the following precedence (highest to lowest):
 
 1. **Programmatic options** - Passed directly to the API
-2. **Environment variables** - `CODEREF_*` prefixed variables
-3. **`.coderefrc.json`** - Configuration file in project root
-4. **`package.json`** - `"coderef"` field
+2. **Environment variables** - `DOCS_CODEREF_*` prefixed variables
+3. **`.docs-coderefrc.json`** - Configuration file in project root
+4. **`package.json`** - `"docs-coderef"` field
 5. **Default values** - Built-in defaults
 
 ## Configuration Options
@@ -188,19 +188,19 @@ You can override configuration using environment variables:
 
 ```bash
 # Set project root
-export CODEREF_PROJECT_ROOT=/path/to/project
+export DOCS_CODEREF_PROJECT_ROOT=/path/to/project
 
 # Set docs directory
-export CODEREF_DOCS_DIR=documentation
+export DOCS_CODEREF_DOCS_DIR=documentation
 
 # Set ignore file
-export CODEREF_IGNORE_FILE=.customignore
+export DOCS_CODEREF_IGNORE_FILE=.customignore
 
 # Enable verbose mode
-export CODEREF_VERBOSE=true
+export DOCS_CODEREF_VERBOSE=true
 
 # Run validation
-npx coderef validate
+npx docs-coderef validate
 ```
 
 ## package.json Configuration
@@ -211,7 +211,7 @@ Alternatively, you can define configuration in `package.json`:
 {
   "name": "my-package",
   "version": "1.0.0",
-  "coderef": {
+  "docs-coderef": {
     "docsDir": "documentation",
     "verbose": true
   }
@@ -267,7 +267,7 @@ TODO.md
 You can also configure the tool programmatically when using the API:
 
 ```typescript
-import { validate, fix } from '@cawpea/coderef';
+import { validate, fix } from '@cawpea/docs-coderef';
 
 // Validate with custom configuration
 await validate({

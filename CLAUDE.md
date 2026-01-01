@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`@cawpea/coderef` is a tool for validating and auto-fixing code references in markdown documentation. It ensures code snippets in documentation stay synchronized with actual source code through CODE_REF comments and AST-based symbol searching.
+`docs-coderef` is a tool for validating and auto-fixing code references in markdown documentation. It ensures code snippets in documentation stay synchronized with actual source code through CODE_REF comments and AST-based symbol searching.
 
 ## Quick Reference
 

@@ -1,5 +1,5 @@
 {
-  "name": "@cawpea/coderef",
+  "name": "docs-coderef",
   "version": "1.0.0",
   "description": "Validate and fix code references in markdown documentation",
   "keywords": [
@@ -16,7 +16,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "coderef": "./bin/coderef.js"
+    "docs-coderef": "./bin/docs-coderef.js"
   },
   "exports": {
     ".": {
@@ -86,12 +86,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/cawpea/coderef.git"
+    "url": "https://github.com/cawpea/docs-coderef.git"
   },
   "bugs": {
-    "url": "https://github.com/cawpea/coderef/issues"
+    "url": "https://github.com/cawpea/docs-coderef/issues"
   },
-  "homepage": "https://github.com/cawpea/coderef#readme",
+  "homepage": "https://github.com/cawpea/docs-coderef#readme",
   "author": "cawpea",
   "license": "MIT",
   "lint-staged": {
