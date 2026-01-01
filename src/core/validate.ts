@@ -53,15 +53,33 @@ export function findMarkdownFiles(dir: string): string[] {
 function getCodeBlockRanges(content: string): { start: number; end: number }[] {
   const ranges: { start: number; end: number }[] = [];
 
-  // Triple backtick code blocks
-  const codeBlockPattern = /```[\s\S]*?```/g;
+  // Find all triple backtick positions
+  const backtickPositions: number[] = [];
+  const backtickPattern = /```/g;
   let match: RegExpExecArray | null;
 
-  while ((match = codeBlockPattern.exec(content)) !== null) {
-    ranges.push({
-      start: match.index,
-      end: match.index + match[0].length,
-    });
+  while ((match = backtickPattern.exec(content)) !== null) {
+    backtickPositions.push(match.index);
+  }
+
+  // Pair up backticks: even indices (0, 2, 4...) are opening, odd indices (1, 3, 5...) are closing
+  for (let i = 0; i < backtickPositions.length; i += 2) {
+    const start = backtickPositions[i];
+    const end = backtickPositions[i + 1];
+
+    if (end !== undefined) {
+      // Closed code block
+      ranges.push({
+        start,
+        end: end + 3, // +3 to include the closing ```
+      });
+    } else {
+      // Unclosed code block (odd number of backticks)
+      ranges.push({
+        start,
+        end: content.length,
+      });
+    }
   }
 
   // Inline code (backticks)
