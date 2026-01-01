@@ -1,10 +1,10 @@
 /**
- * Configuration system for @cawpea/coderef
+ * Configuration system for docs-coderef
  *
  * Supports loading configuration from:
- * - .coderefrc.json file
- * - package.json "coderef" field
- * - Environment variables (CODEREF_*)
+ * - .docs-coderefrc.json file
+ * - package.json "docs-coderef" field
+ * - Environment variables (DOCS_CODEREF_*)
  * - Programmatic options
  */
 
@@ -85,10 +85,10 @@ function getDefaultConfig(): CodeRefConfig {
 }
 
 /**
- * Load configuration from .coderefrc.json file
+ * Load configuration from .docs-coderefrc.json file
  */
 function loadConfigFile(projectRoot: string): PartialCodeRefConfig | null {
-  const configPath = path.join(projectRoot, '.coderefrc.json');
+  const configPath = path.join(projectRoot, '.docs-coderefrc.json');
 
   if (!fs.existsSync(configPath)) {
     return null;
@@ -99,13 +99,13 @@ function loadConfigFile(projectRoot: string): PartialCodeRefConfig | null {
     return JSON.parse(content);
   } catch (error) {
     throw new Error(
-      `Failed to load .coderefrc.json: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to load .docs-coderefrc.json: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 }
 
 /**
- * Load configuration from package.json "coderef" field
+ * Load configuration from package.json "docs-coderef" field
  */
 function loadPackageJsonConfig(projectRoot: string): PartialCodeRefConfig | null {
   const packageJsonPath = path.join(projectRoot, 'package.json');
@@ -117,7 +117,7 @@ function loadPackageJsonConfig(projectRoot: string): PartialCodeRefConfig | null
   try {
     const content = fs.readFileSync(packageJsonPath, 'utf-8');
     const packageJson = JSON.parse(content);
-    return packageJson.coderef || null;
+    return packageJson['docs-coderef'] || null;
   } catch (_error) {
     // Silently ignore package.json parsing errors
     return null;
@@ -130,20 +130,20 @@ function loadPackageJsonConfig(projectRoot: string): PartialCodeRefConfig | null
 function loadEnvConfig(): PartialCodeRefConfig {
   const config: PartialCodeRefConfig = {};
 
-  if (process.env.CODEREF_PROJECT_ROOT) {
-    config.projectRoot = process.env.CODEREF_PROJECT_ROOT;
+  if (process.env.DOCS_CODEREF_PROJECT_ROOT) {
+    config.projectRoot = process.env.DOCS_CODEREF_PROJECT_ROOT;
   }
 
-  if (process.env.CODEREF_DOCS_DIR) {
-    config.docsDir = process.env.CODEREF_DOCS_DIR;
+  if (process.env.DOCS_CODEREF_DOCS_DIR) {
+    config.docsDir = process.env.DOCS_CODEREF_DOCS_DIR;
   }
 
-  if (process.env.CODEREF_IGNORE_FILE) {
-    config.ignoreFile = process.env.CODEREF_IGNORE_FILE;
+  if (process.env.DOCS_CODEREF_IGNORE_FILE) {
+    config.ignoreFile = process.env.DOCS_CODEREF_IGNORE_FILE;
   }
 
-  if (process.env.CODEREF_VERBOSE) {
-    config.verbose = process.env.CODEREF_VERBOSE === 'true';
+  if (process.env.DOCS_CODEREF_VERBOSE) {
+    config.verbose = process.env.DOCS_CODEREF_VERBOSE === 'true';
   }
 
   return config;
@@ -155,8 +155,8 @@ function loadEnvConfig(): PartialCodeRefConfig {
  * Precedence (highest to lowest):
  * 1. Programmatic options
  * 2. Environment variables
- * 3. .coderefrc.json
- * 4. package.json "coderef" field
+ * 3. .docs-coderefrc.json
+ * 4. package.json "docs-coderef" field
  * 5. Default values
  */
 function mergeConfigs(
@@ -213,7 +213,7 @@ export function loadConfig(options: PartialCodeRefConfig = {}): CodeRefConfig {
   const defaultConfig = getDefaultConfig();
 
   // Determine projectRoot first (needed for loading config files)
-  const projectRoot = options.projectRoot || process.env.CODEREF_PROJECT_ROOT || process.cwd();
+  const projectRoot = options.projectRoot || process.env.DOCS_CODEREF_PROJECT_ROOT || process.cwd();
 
   // Load from all sources
   const packageJsonConfig = loadPackageJsonConfig(projectRoot);

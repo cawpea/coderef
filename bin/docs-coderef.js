@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * CLI entry point for @cawpea/coderef
+ * CLI entry point for docs-coderef
  */
 
 const { program } = require('commander');
 const packageJson = require('../package.json');
 
 program
-  .name('coderef')
+  .name('docs-coderef')
   .description('Validate and fix code references in markdown documentation')
   .version(packageJson.version);
 

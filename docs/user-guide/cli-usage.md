@@ -7,7 +7,7 @@
 Validate all CODE_REF references in your documentation:
 
 ```bash
-npx coderef validate
+npx docs-coderef validate
 ```
 
 ### Validate Specific Files or Directories
@@ -16,13 +16,13 @@ You can specify files or directories to validate:
 
 ```bash
 # Validate a specific file
-npx coderef validate docs/README.md
+npx docs-coderef validate docs/README.md
 
 # Validate a specific directory
-npx coderef validate docs/backend/
+npx docs-coderef validate docs/backend/
 
 # Validate multiple files/directories
-npx coderef validate docs/README.md docs/api/
+npx docs-coderef validate docs/README.md docs/api/
 ```
 
 ### Options
@@ -30,7 +30,7 @@ npx coderef validate docs/README.md docs/api/
 - `--verbose`, `-v`: Display detailed output including reference counts per file
 
 ```bash
-npx coderef validate --verbose
+npx docs-coderef validate --verbose
 ```
 
 ## Fix Command
@@ -40,7 +40,7 @@ npx coderef validate --verbose
 Fix errors interactively with colored diffs:
 
 ```bash
-npx coderef fix
+npx docs-coderef fix
 ```
 
 This will prompt you for each error with options to apply the fix or skip.
@@ -50,25 +50,25 @@ This will prompt you for each error with options to apply the fix or skip.
 - `--auto`: Automatically apply all fixes without prompting for confirmation
 
 ```bash
-npx coderef fix --auto
+npx docs-coderef fix --auto
 ```
 
 - `--dry-run`: Simulate fixes without making actual changes (useful for testing)
 
 ```bash
-npx coderef fix --dry-run
+npx docs-coderef fix --dry-run
 ```
 
 - `--backup`: Create backup files before applying fixes (default: no backup)
 
 ```bash
-npx coderef fix --backup
+npx docs-coderef fix --backup
 ```
 
 - `--verbose`, `-v`: Display detailed output during the fix process
 
 ```bash
-npx coderef fix --verbose
+npx docs-coderef fix --verbose
 ```
 
 ### Combining Options
@@ -77,10 +77,10 @@ You can combine multiple options:
 
 ```bash
 # Auto-fix with backup
-npx coderef fix --auto --backup
+npx docs-coderef fix --auto --backup
 
 # Dry run with verbose output
-npx coderef fix --dry-run --verbose
+npx docs-coderef fix --dry-run --verbose
 ```
 
 ## Exit Codes

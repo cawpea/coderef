@@ -1,12 +1,12 @@
 /**
- * @cawpea/coderef - Validate and fix code references in markdown documentation
+ * docs-coderef - Validate and fix code references in markdown documentation
  *
  * This is the main entry point for programmatic usage.
- * For CLI usage, use the `coderef` command.
+ * For CLI usage, use the `docs-coderef` command.
  *
  * @example
  * ```typescript
- * import { validateCodeRef, extractCodeRefs, loadConfig } from '@cawpea/coderef';
+ * import { validateCodeRef, extractCodeRefs, loadConfig } from 'docs-coderef';
  *
  * const config = loadConfig();
  * const refs = extractCodeRefs(markdownContent, 'docs/README.md');

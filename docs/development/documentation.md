@@ -1,6 +1,6 @@
 # Documentation Guidelines
 
-This guide explains how to write and maintain documentation for the @cawpea/coderef project.
+This guide explains how to write and maintain documentation for the docs-coderef project.
 
 ## Documentation Structure
 

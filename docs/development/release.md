@@ -1,6 +1,6 @@
 # Release Process
 
-This document describes the release process for `@cawpea/coderef`.
+This document describes the release process for `docs-coderef`.
 
 ## Overview
 
@@ -82,7 +82,7 @@ You can manually trigger a release from the GitHub UI when needed.
 #### Steps
 
 1. **Open GitHub Repository Page**
-   - https://github.com/cawpea/coderef
+   - https://github.com/cawpea/docs-coderef
 
 2. **Navigate to Actions Tab**
    - Click the "Actions" tab at the top
@@ -144,7 +144,7 @@ See [Git Conventions](./git-conventions.md) for more details.
 When a release succeeds, the following are automatically created:
 
 1. **npm Package**
-   - https://www.npmjs.com/package/@cawpea/coderef
+   - https://www.npmjs.com/package/docs-coderef
    - New version is published
 
 2. **Git Tag**
@@ -169,7 +169,7 @@ After a release, verify the following:
 
 ### 1. Check GitHub Actions
 
-- Visit https://github.com/cawpea/coderef/actions
+- Visit https://github.com/cawpea/docs-coderef/actions
 - Verify Release workflow completed successfully
 - Ensure all steps have green checkmarks
 
@@ -177,15 +177,15 @@ After a release, verify the following:
 
 ```bash
 # Check latest version
-npm view @cawpea/coderef version
+npm view docs-coderef version
 
 # Test package installation
-npm install @cawpea/coderef@latest
+npm install docs-coderef@latest
 ```
 
 ### 3. Check GitHub Release
 
-- Visit https://github.com/cawpea/coderef/releases
+- Visit https://github.com/cawpea/docs-coderef/releases
 - Verify new release was created
 - Verify release notes are correctly generated
 
@@ -237,7 +237,7 @@ git describe --tags --abbrev=0
 
 2. **Package Name Conflict**
    - Verify package with same name doesn't already exist on npm
-   - For scoped packages (`@cawpea/coderef`), verify `publishConfig.access: "public"` is set
+   - For scoped packages (e.g., `@company/package-name`), verify `publishConfig.access: "public"` is set
 
 3. **Network Error**
    - May be a temporary error
@@ -280,16 +280,16 @@ Procedures for rolling back a release when issues occur.
 
 ```bash
 # Unpublish package version (within 72 hours)
-npm unpublish @cawpea/coderef@X.Y.Z
+npm unpublish docs-coderef@X.Y.Z
 
 # Or deprecate package (after 72 hours)
-npm deprecate @cawpea/coderef@X.Y.Z "This version has critical issues. Please use vX.Y.Z-1 instead."
+npm deprecate docs-coderef@X.Y.Z "This version has critical issues. Please use vX.Y.Z-1 instead."
 ```
 
 ### Delete GitHub Release
 
 1. **Delete from GitHub UI**
-   - Visit https://github.com/cawpea/coderef/releases
+   - Visit https://github.com/cawpea/docs-coderef/releases
    - Open the relevant release
    - Click "Delete" button
 

@@ -37,7 +37,7 @@ describe('path-checker', () => {
     });
 
     it('should return true when bin/ files are changed', () => {
-      const changedFiles = ['bin/coderef.js'];
+      const changedFiles = ['bin/docs-coderef.js'];
 
       const result = requiresDocsUpdate(changedFiles);
 
