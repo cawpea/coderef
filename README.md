@@ -1,10 +1,6 @@
 # docs-coderef
 
-> Validate and fix code references in markdown documentation
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-**Status**: 🚧 Under Development
+Validate and fix code references in markdown documentation
 
 ## Overview
 
@@ -174,10 +170,6 @@ Create `.docs-coderefrc.json` in your project root:
   "ignoreFile": ".gitignore"
 }
 ```
-
-## Development
-
-This package is currently under active development. More documentation will be added soon.
 
 ## License
 
