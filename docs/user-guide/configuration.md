@@ -267,7 +267,7 @@ TODO.md
 You can also configure the tool programmatically when using the API:
 
 ```typescript
-import { validate, fix } from '@cawpea/docs-coderef';
+import { validate, fix } from 'docs-coderef';
 
 // Validate with custom configuration
 await validate({
