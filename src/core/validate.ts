@@ -53,34 +53,30 @@ export function findMarkdownFiles(dir: string): string[] {
 function getCodeBlockRanges(content: string): { start: number; end: number }[] {
   const ranges: { start: number; end: number }[] = [];
 
-  // Triple backtick code blocks (closed)
-  const codeBlockPattern = /```[\s\S]*?```/g;
+  // Find all triple backtick positions
+  const backtickPositions: number[] = [];
+  const backtickPattern = /```/g;
   let match: RegExpExecArray | null;
 
-  while ((match = codeBlockPattern.exec(content)) !== null) {
-    ranges.push({
-      start: match.index,
-      end: match.index + match[0].length,
-    });
+  while ((match = backtickPattern.exec(content)) !== null) {
+    backtickPositions.push(match.index);
   }
 
-  // Find unclosed code blocks (starting ``` without closing ```)
-  const allCodeBlockStarts = /```/g;
-  const closedRanges = ranges.slice(); // Copy of closed ranges
-  let startMatch: RegExpExecArray | null;
+  // Pair up backticks: even indices (0, 2, 4...) are opening, odd indices (1, 3, 5...) are closing
+  for (let i = 0; i < backtickPositions.length; i += 2) {
+    const start = backtickPositions[i];
+    const end = backtickPositions[i + 1];
 
-  while ((startMatch = allCodeBlockStarts.exec(content)) !== null) {
-    const startPos = startMatch.index;
-
-    // Check if this start position is already part of a closed block
-    const isPartOfClosedBlock = closedRanges.some(
-      (range) => startPos >= range.start && startPos < range.end
-    );
-
-    if (!isPartOfClosedBlock) {
-      // This is an unclosed block - treat from start to end of content
+    if (end !== undefined) {
+      // Closed code block
       ranges.push({
-        start: startPos,
+        start,
+        end: end + 3, // +3 to include the closing ```
+      });
+    } else {
+      // Unclosed code block (odd number of backticks)
+      ranges.push({
+        start,
         end: content.length,
       });
     }
