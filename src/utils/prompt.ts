@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as readline from 'readline';
 
 import { extractLinesFromFile } from '@/utils/code-comparison';
-import { displayCodeDiff, displayLineRangeDiff } from '@/utils/diff-display';
+import { displayCodeDiff } from '@/utils/diff-display';
 import type { FixAction } from '@/utils/types';
 import { msg, COLOR_SCHEMES } from '@/utils/message-formatter';
 
@@ -106,51 +106,11 @@ function displayColoredCodeBlock(preview: string): void {
 export function displayFixPreview(action: FixAction, projectRoot: string): void {
   console.log(`\nChanges: ${action.description}`);
 
-  // Display colored diff based on error type
+  // Display colored diff based on action type
   const { error } = action;
   const absolutePath = path.resolve(projectRoot, error.ref.refPath);
 
-  switch (error.type) {
-    case 'CODE_LOCATION_MISMATCH': {
-      // Display line number diff
-      if (error.ref.codeBlock && action.newStartLine && action.newEndLine) {
-        // If code block exists, get actual code
-        const actualCode = extractLinesFromFile(
-          absolutePath,
-          action.newStartLine,
-          action.newEndLine
-        );
-
-        const diff = displayLineRangeDiff(
-          actualCode,
-          {
-            start: error.ref.startLine!,
-            end: error.ref.endLine!,
-          },
-          {
-            start: action.newStartLine,
-            end: action.newEndLine,
-          }
-        );
-        console.log(diff);
-      } else {
-        // Simple preview if no code block
-        console.log(action.preview);
-      }
-      break;
-    }
-
-    case 'CODE_CONTENT_MISMATCH': {
-      // Display code content diff
-      if (error.expectedCode && action.newCodeBlock) {
-        const diff = displayCodeDiff(error.expectedCode, action.newCodeBlock);
-        console.log(diff);
-      } else {
-        console.log(action.preview);
-      }
-      break;
-    }
-
+  switch (action.type) {
     case 'INSERT_CODE_BLOCK': {
       // For new insertion, simply display the code to be inserted
       if (action.newCodeBlock) {
@@ -168,7 +128,7 @@ export function displayFixPreview(action: FixAction, projectRoot: string): void 
     }
 
     case 'REPLACE_CODE_BLOCK': {
-      // For code block replacement, same processing as CODE_CONTENT_MISMATCH
+      // For code block replacement, show diff between expected and new code
       if (error.expectedCode && action.newCodeBlock) {
         const diff = displayCodeDiff(error.expectedCode, action.newCodeBlock);
         console.log(diff);
@@ -180,6 +140,12 @@ export function displayFixPreview(action: FixAction, projectRoot: string): void 
 
     case 'UPDATE_LINE_NUMBERS':
     case 'UPDATE_END_LINE': {
+      // For CODE_LOCATION_MISMATCH without code block, show simple preview
+      if (error.type === 'CODE_LOCATION_MISMATCH' && !error.ref.codeBlock) {
+        console.log(action.preview);
+        break;
+      }
+
       // For line number update, display comment change
       const oldComment = error.ref.fullMatch;
       const newComment = `<!-- CODE_REF: ${error.ref.refPath}:${action.newStartLine}-${action.newEndLine} -->`;
@@ -198,7 +164,7 @@ export function displayFixPreview(action: FixAction, projectRoot: string): void 
         );
 
         console.log('\nNote: Code block will be kept as-is. Actual code in file:');
-        const diff = displayCodeDiff(action.newCodeBlock || '', actualCode);
+        const diff = displayCodeDiff(action.newCodeBlock ?? '', actualCode);
         console.log(diff);
       } else if (action.newCodeBlock && fs.existsSync(absolutePath)) {
         // For other cases, just display the code block content
