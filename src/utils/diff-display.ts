@@ -23,26 +23,51 @@ export function displayCodeDiff(expected: string, actual: string): string {
   output.push(COLOR_SCHEMES.success('+ Actual code (in file)'));
   output.push(COLOR_SCHEMES.dim('━'.repeat(64)));
 
+  // Buffer for grouping consecutive changes
+  const removedLines: string[] = [];
+  const addedLines: string[] = [];
+
+  const flushChanges = () => {
+    // Output all removed lines first, then all added lines
+    removedLines.forEach((line) => {
+      output.push(COLOR_SCHEMES.error(`- ${line}`));
+    });
+    addedLines.forEach((line) => {
+      output.push(COLOR_SCHEMES.success(`+ ${line}`));
+    });
+    removedLines.length = 0;
+    addedLines.length = 0;
+  };
+
   // Compare line by line
   for (let i = 0; i < maxLines; i++) {
     const expectedLine = expectedLines[i];
     const actualLine = actualLines[i];
 
     if (expectedLine === actualLine) {
+      // Flush any pending changes before showing matching lines
+      if (removedLines.length > 0 || addedLines.length > 0) {
+        flushChanges();
+      }
       // Matching lines (when both exist)
       if (expectedLine !== undefined) {
         output.push(`  ${expectedLine}`);
       }
     } else {
-      // Expected lines (deleted lines)
+      // Buffer expected lines (deleted lines)
       if (expectedLine !== undefined) {
-        output.push(COLOR_SCHEMES.error(`- ${expectedLine}`));
+        removedLines.push(expectedLine);
       }
-      // Actual lines (added lines)
+      // Buffer actual lines (added lines)
       if (actualLine !== undefined) {
-        output.push(COLOR_SCHEMES.success(`+ ${actualLine}`));
+        addedLines.push(actualLine);
       }
     }
+  }
+
+  // Flush any remaining changes
+  if (removedLines.length > 0 || addedLines.length > 0) {
+    flushChanges();
   }
 
   output.push(COLOR_SCHEMES.dim('━'.repeat(64)));
